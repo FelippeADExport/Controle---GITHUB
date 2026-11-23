@@ -991,7 +991,7 @@ function _montarExportMetas(incluirGraficos){
     // Preço médio sem Pontas/Classe B; sub-linha 📌 Pontas/Classe B logo abaixo do país que teve
     precoMedio: linhas.reduce((arr,r)=>{
       arr.push({pais:nome(r.pais), qtd:r.qtdNormal, precoUS:r.precoUS, precoRS:r.precoRS});
-      if(r.qtdPonta && r.pais!=='GLOBAL') arr.push({pais:'   📌 Pontas/Classe B', qtd:r.qtdPonta, precoUS:r.precoPontaUS, precoRS:r.precoPontaRS});
+      if(r.qtdPonta && r.pais!=='GLOBAL') arr.push({pais:'   Pontas/Classe B', qtd:r.qtdPonta, precoUS:r.precoPontaUS, precoRS:r.precoPontaRS});
       return arr;
     },[]),
     anualRS: paises.map(p=>{
@@ -1024,7 +1024,7 @@ function _montarExportMetas(incluirGraficos){
         return {pais:label, meses, media:{rs: tq?trs/tq:0, us: tq?tus/tq:0}};
       };
       arr.push(linhaAno(nome(p), m=>_dadoNormal(_calcDado(METAS_REALIZADO_CALC,p,m))));
-      if(_temPontaNoAno(METAS_REALIZADO_CALC,p)) arr.push(linhaAno('   📌 Pontas/Classe B', m=>_dadoPonta(_calcDado(METAS_REALIZADO_CALC,p,m))));
+      if(_temPontaNoAno(METAS_REALIZADO_CALC,p)) arr.push(linhaAno('   Pontas/Classe B', m=>_dadoPonta(_calcDado(METAS_REALIZADO_CALC,p,m))));
       return arr;
     },[]),
   };
