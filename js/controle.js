@@ -115,7 +115,7 @@ function _celExcluir(r){
 function _celProforma(r){
   const marcas = (r.ponta==='SIM'?' <span class="chip chip-amarelo" title="Ponta de Produção">Ponta A</span>':'')
     + (r.classe_b==='SIM'?' <span class="chip chip-danger" title="Classe B">Classe B</span>':'')
-    + (_temComissaoManual(r)?' <span class="chip" title="Comissão manual (sem NF lançada): valores em R$ estimados pela cotação média">Manual</span>':'');
+    + (_temComissaoManual(r)?' <span class="chip" title="Comissão manual (sem NF lançada): valores em R$ estimados pela cotação média">Com. Manual</span>':'');
   const links = (r.pdf_proforma?`<a class="link-doc" href="${esc(r.pdf_proforma)}" target="_blank" title="Abrir proforma">Proforma</a>`:'')
     + (r.pdf_invoice?`<a class="link-doc" href="${esc(r.pdf_invoice)}" target="_blank" title="Abrir invoice">Invoice</a>`:'');
   return `<td class="col-freeze col-freeze-3 cel-proforma">${esc(r.numero_proforma)}${marcas}${links?'<div class="links-doc">'+links+'</div>':''}</td>`;
@@ -163,17 +163,16 @@ function _celInspecao(r){
 // Clique na data abre o mesmo modal rápido usado para marcar a comissão como paga.
 function _celulaComissaoCol(r){
   const ag = _comissaoPorProforma()[r.numero_proforma];
-  let pctTxt = null, valorUS = 0, valorRS = 0, manual = false;
+  let pctTxt = null, valorUS = 0, valorRS = 0;
   if(ag && ag.percentuais.size){
     pctTxt = Array.from(ag.percentuais).sort((a,b)=>a-b).map(p=>fmtN(p)+'%').join(' / ');
     valorUS = ag.comUS; valorRS = ag.comRS;
   } else if(r.comissao_manual!==null && r.comissao_manual!==undefined){
-    manual = true;
     pctTxt = fmtN(r.comissao_manual)+'%';
     valorUS = (r.valor||0) * (r.comissao_manual||0) / 100;
   }
   const linhaPct = pctTxt
-    ? `<span class="forte">${pctTxt}</span>${manual?' <span class="chip" title="Comissão manual (sem NF lançada)">Manual</span>':''}`
+    ? `<span class="forte">${pctTxt}</span>`
     : `<span class="muted">—</span>`;
   const linhaValor = valorUS
     ? `<br><span class="com-valor">US$ ${fmtN(valorUS)}</span>${valorRS?`<br><span class="sub-num">R$ ${fmtN(valorRS)}</span>`:''}`

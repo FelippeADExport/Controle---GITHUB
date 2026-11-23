@@ -613,7 +613,7 @@ function renderRelatorioControle(nfsTodas, ini, fim, nfsCompletas){
         const comUS = c ? c.comUS : 0;
         const comRS = c ? c.comRS : 0;
         const dataFatTxt = c && c.datasFat.size ? Array.from(c.datasFat).join(' / ') : '—';
-        const iconManual = c && c.manual ? ' <span class="chip" title="Comissão manual (sem NF lançada): valores em R$ estimados pela cotação média">Manual</span>' : '';
+        const iconManual = c && c.manual ? ' <span class="chip" title="Comissão manual (sem NF lançada): valores em R$ estimados pela cotação média">Com. Manual</span>' : '';
         const dataPgtoComissaoCell = r.data_pagamento_comissao
           ? `<span style="color:var(--success);">${esc(r.data_pagamento_comissao)}</span>`
           : `<span style="color:var(--text3);">pendente</span>`;
