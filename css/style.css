@@ -37,6 +37,8 @@
   --font-titulo:"Syne",var(--font);   /* títulos das abas e seletor de abas */
   --amarelo:#e2c044;
   --amarelo-soft:rgba(226,192,68,.14);
+  --laranja:#e8894a;
+  --laranja-soft:rgba(232,137,74,.15);
 
   /* Ajustáveis em Configurações > Aparência */
   --fs-navbar:13px;--clr-navbar:var(--text2);
@@ -64,6 +66,8 @@ html[data-theme="light"]{
   --warn-soft:rgba(154,106,20,.09);
   --amarelo:#8a6d00;
   --amarelo-soft:rgba(176,140,0,.13);
+  --laranja:#b85a18;
+  --laranja-soft:rgba(184,90,24,.11);
   --overlay:rgba(20,24,28,.45);
   --shadow:0 8px 32px rgba(20,24,28,.18);
 }
@@ -227,6 +231,7 @@ html[data-theme="light"] .logo-escuro{display:none}
 .chip-success{background:var(--success-soft);color:var(--success)}
 .chip-danger{background:var(--danger-soft);color:var(--danger)}
 .chip-amarelo{background:var(--amarelo-soft);color:var(--amarelo)}
+.chip-laranja{background:var(--laranja-soft);color:var(--laranja)}
 .chip.clickable,.status-chip.clickable{cursor:pointer}
 .chip.clickable:hover,.status-chip.clickable:hover{filter:brightness(1.15)}
 .selo{display:inline-block;margin-top:2px;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;background:var(--surface3);color:var(--text3)}
@@ -358,8 +363,9 @@ select.ctrl-filter-input{padding-right:28px}
 .status-chip::first-letter{text-transform:uppercase}
 .status-chip.vazio{opacity:.55}
 .s-ag-pag{background:var(--warn-soft);color:var(--warn)}
-.s-ag-inf,.s-ag-emb,.s-transferencia{background:var(--accent-soft);color:var(--accent)}
-.s-ag-doc,.s-cancelado{background:var(--danger-soft);color:var(--danger)}
+.s-vermelho{background:var(--danger-soft);color:var(--danger)}
+.s-laranja{background:var(--laranja-soft);color:var(--laranja)}
+.s-amarelo{background:var(--amarelo-soft);color:var(--amarelo)}
 .s-pago{background:var(--success-soft);color:var(--success)}
 .s-fin{background:var(--surface2);color:var(--text3)}
 .etq-aprovada{background:var(--success-soft);color:var(--success)}

@@ -8,15 +8,15 @@ let TODAS_NFS=[], _comissaoPorProformaCache=null;
 let ctrlTabAtual = 'maritimo';
 
 // Classe visual de cada status (usada nas tabelas e nos menus de status)
+// (status que saíram da lista, como "proforma enviada", ficam com a cor neutra)
 const STATUS_CLASSE = {
-  'ag. pagamento':'s-ag-pag','ag. informações':'s-ag-inf','ag. documentação':'s-ag-doc',
-  'ag. cadastro':'s-ag-doc','ag. liberação financeiro':'s-ag-pag',
-  'proforma enviada':'s-ag-inf','ag. embarque':'s-ag-emb',
-  'embarcou na fábrica':'s-ag-emb','transferência de navio':'s-transferencia',
+  'ag. documentação':'s-vermelho','ag. cadastro':'s-vermelho','ag. liberação financeiro':'s-vermelho',
+  'ag. informações':'s-vermelho','ag. aprovação cliente':'s-vermelho','cancelado':'s-vermelho',
+  'ag. pagamento':'s-ag-pag',
+  'ag. produção':'s-amarelo',
+  'ag. instrução de embarque':'s-laranja','ag. reserva/booking':'s-laranja',
+  'ag. embarque':'s-laranja','embarcou na fábrica':'s-laranja',
   'embarcado':'s-pago','finalizado':'s-fin',
-  'ag. instrução de embarque':'s-ag-inst','ag. nomeação agente':'s-ag-nom',
-  'ag. reserva/booking':'s-ag-res','ag. aprovação cliente':'s-ag-aprov',
-  'cancelado':'s-cancelado','ag. produção':'s-ag-prod',
 };
 const ETQ_CLASSE  = {'aprovada':'etq-aprovada','reprovada':'etq-reprovada','aguardando aprovação':'etq-aguardando'};
 const INSP_CLASSE = {'aprovada':'etq-aprovada','reprovada':'etq-reprovada','fora da vigência':'etq-aguardando'};
@@ -114,7 +114,7 @@ function _celExcluir(r){
 // Proforma + marcações (Ponta, Classe B, comissão manual) + links dos PDFs
 function _celProforma(r){
   const marcas = (r.ponta==='SIM'?' <span class="chip chip-amarelo" title="Ponta de Produção">Ponta A</span>':'')
-    + (r.classe_b==='SIM'?' <span class="chip chip-danger" title="Classe B">Classe B</span>':'')
+    + (r.classe_b==='SIM'?' <span class="chip chip-laranja" title="Classe B">Classe B</span>':'')
     + (_temComissaoManual(r)?' <span class="chip" title="Comissão manual (sem NF lançada): valores em R$ estimados pela cotação média">Com. Manual</span>':'');
   const links = (r.pdf_proforma?`<a class="link-doc" href="${esc(r.pdf_proforma)}" target="_blank" title="Abrir proforma">Proforma</a>`:'')
     + (r.pdf_invoice?`<a class="link-doc" href="${esc(r.pdf_invoice)}" target="_blank" title="Abrir invoice">Invoice</a>`:'');
@@ -257,8 +257,8 @@ function _renderMar(lista){
       <td>${esc(r.prazo_pagamento)||'—'}</td>
       <td>${_dataPrev(r.data_prev_pagamento)}${r.data_pagamento?'<br>'+_dataReal(r.data_pagamento):''}</td>
       <td>${_dataPrev(r.data_bl)}</td>
-      <td>${_dataPrev(r.etd)}${r.saida?'<br>'+_dataReal(r.saida):''}</td>
-      <td>${_dataPrev(r.eta_maritimo)}${r.chegada?'<br>'+_dataReal(r.chegada):''}</td>
+      <td>${_dataPrev(r.etd)}</td>
+      <td>${_dataPrev(r.eta_maritimo)}</td>
       <td>${[r.courrier,r.booking].filter(Boolean).map(esc).join(' / ')||'—'}</td>
       <td>${[r.agente,r.armador].filter(Boolean).map(esc).join(' / ')||'—'}</td>
       <td class="cel-peq">${esc(r.navio)||'—'}</td>
