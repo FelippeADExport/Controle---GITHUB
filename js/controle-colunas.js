@@ -61,6 +61,9 @@ function _reaplicarToggle(tab){
 // capturada uma única vez. Sem isso, "Restaurar ordem" não tinha pra onde voltar,
 // pois a base de comparação acabava sendo a própria ordem já embaralhada.
 const _colDefaultOrder = {};
+// data-col de TODAS as colunas na ordem do HTML. As linhas recém-desenhadas sempre
+// vêm nessa ordem, mesmo quando o cabeçalho já foi reordenado antes.
+const _colTodasPadrao = {};
 
 function _aplicarOrdemColunas(tab){
   const tblId = COL_TOGGLE_TABLE_MAP[tab];
@@ -70,30 +73,40 @@ function _aplicarOrdemColunas(tab){
   if(!theadRow) return;
   const ths = Array.from(theadRow.children);
   const ordemSalva = _colOrderState[tab] || [];
+  const colDe = (th,i) => th.dataset.col || ('_idx'+i);
 
-  const frozenIdx = [];
-  const trailingIdx = []; // coluna de Ação final — sempre por último, nunca entra na reordenação
-  const moveis = []; // {idx, dataCol}
-  ths.forEach((th,idx)=>{
-    if(th.classList.contains('col-freeze')) frozenIdx.push(idx);
-    else if((th.dataset.col||'').endsWith('-acoes')) trailingIdx.push(idx);
-    else moveis.push({idx, dataCol: th.dataset.col || ('_idx'+idx)});
+  if(!_colTodasPadrao[tab]) _colTodasPadrao[tab] = ths.map(colDe);
+  // Cada célula nova recebe o data-col da sua coluna, para ser movida pela identidade
+  // da coluna (e não pela posição, que muda depois de reordenar o cabeçalho).
+  tbl.querySelectorAll('tbody tr').forEach(tr=>{
+    if(tr.dataset.colsMarcadas) return;
+    Array.from(tr.children).forEach((td,i)=>{ td.dataset.col = _colTodasPadrao[tab][i]; });
+    tr.dataset.colsMarcadas = '1';
   });
 
-  if(!_colDefaultOrder[tab]) _colDefaultOrder[tab] = moveis.map(c=>c.dataCol);
+  const congeladas = [];
+  const finais = []; // coluna de Ação final: sempre por último, nunca entra na reordenação
+  const moveis = [];
+  ths.forEach((th,i)=>{
+    const dc = colDe(th,i);
+    if(th.classList.contains('col-freeze')) congeladas.push(dc);
+    else if(dc.endsWith('-acoes')) finais.push(dc);
+    else moveis.push(dc);
+  });
+
+  if(!_colDefaultOrder[tab]) _colDefaultOrder[tab] = moveis.slice();
   const padrao = _colDefaultOrder[tab];
 
-  let dataColsAlvo = ordemSalva.filter(dc => moveis.some(c=>c.dataCol===dc));
-  // Preenche o que falta na ORDEM PADRÃO original — não na ordem atual da tela
-  padrao.forEach(dc=>{ if(moveis.some(c=>c.dataCol===dc) && !dataColsAlvo.includes(dc)) dataColsAlvo.push(dc); });
-  const moveisIdx = dataColsAlvo.map(dc => moveis.find(c=>c.dataCol===dc).idx);
+  let dataColsAlvo = ordemSalva.filter(dc => moveis.includes(dc));
+  // Preenche o que falta na ORDEM PADRÃO original, não na ordem atual da tela
+  padrao.forEach(dc=>{ if(moveis.includes(dc) && !dataColsAlvo.includes(dc)) dataColsAlvo.push(dc); });
 
-  const ordemFinal = [...frozenIdx, ...moveisIdx, ...trailingIdx];
-
-  ordemFinal.forEach(idx => theadRow.appendChild(ths[idx]));
+  const ordemFinal = [...congeladas, ...dataColsAlvo, ...finais];
+  const thPorCol = {}; ths.forEach((th,i)=>{ thPorCol[colDe(th,i)] = th; });
+  ordemFinal.forEach(dc => { if(thPorCol[dc]) theadRow.appendChild(thPorCol[dc]); });
   tbl.querySelectorAll('tbody tr').forEach(tr=>{
-    const cells = Array.from(tr.children);
-    ordemFinal.forEach(idx => { if(cells[idx]) tr.appendChild(cells[idx]); });
+    const tdPorCol = {}; Array.from(tr.children).forEach(td=>{ tdPorCol[td.dataset.col] = td; });
+    ordemFinal.forEach(dc => { if(tdPorCol[dc]) tr.appendChild(tdPorCol[dc]); });
   });
 }
 
@@ -162,7 +175,6 @@ function _initColToggle(tab){
 
   Object.keys(grupos).forEach(lbl=>{
     const itens=grupos[lbl];
-    const idxs=itens.map(it=>it.idx);
     if(state[lbl]===undefined) state[lbl]=true;
     const visible=state[lbl];
 
@@ -195,7 +207,8 @@ function _initColToggle(tab){
       btn.classList.toggle('visible',novoVis);
       state[lbl]=novoVis;
       _salvarColToggleStorage();
-      idxs.forEach(idx=>_toggleColuna(tbl,idx,novoVis));
+      // posição atual da coluna (pode ter mudado depois de reordenar)
+      _idxsDoRotulo(tbl,lbl).forEach(idx=>_toggleColuna(tbl,idx,novoVis));
     };
     wrap.appendChild(btn);
 
@@ -211,7 +224,7 @@ function _initColToggle(tab){
 
     contents.appendChild(wrap);
     // Re-aplicar estado oculto se necessário
-    if(!visible) idxs.forEach(idx=>_toggleColuna(tbl,idx,false));
+    if(!visible) _idxsDoRotulo(tbl,lbl).forEach(idx=>_toggleColuna(tbl,idx,false));
   });
 
   const btnReset=document.createElement('button');
@@ -222,6 +235,12 @@ function _initColToggle(tab){
   contents.appendChild(btnReset);
 
   _aplicarOrdemColunas(tab);
+}
+// Posições atuais das colunas com este nome ("Ação" aparece duas vezes)
+function _idxsDoRotulo(tbl, lbl){
+  const idxs=[];
+  tbl.querySelectorAll('thead th').forEach((th,i)=>{ if(th.textContent.trim().slice(0,14)===lbl) idxs.push(i); });
+  return idxs;
 }
 function _toggleColuna(tbl,idx,visible){
   tbl.querySelectorAll('thead th').forEach((th,i)=>{if(i===idx)th.style.display=visible?'':'none';});
