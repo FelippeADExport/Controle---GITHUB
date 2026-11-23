@@ -763,10 +763,8 @@ if ('serviceWorker' in navigator) {
 
       <div class="grid grid-2 form-linha">
         <div><label for="ctrl-pais-destino">País destino</label><input type="text" id="ctrl-pais-destino" placeholder="País"></div>
-        <div><label for="ctrl-pdf-invoice">Link do invoice</label>
-          <input type="text" id="ctrl-pdf-invoice" placeholder="Cole o link do invoice (opcional)">
-          <div class="campo-info">Preenchido automaticamente por "Vincular arquivos" quando houver um invoice na pasta.</div>
-        </div>
+        <!-- Link do invoice: não aparece no formulário, mas é mantido ao salvar (preenchido por "Vincular arquivos") -->
+        <input type="hidden" id="ctrl-pdf-invoice">
       </div>
 
       <div class="grid grid-2 form-linha">
