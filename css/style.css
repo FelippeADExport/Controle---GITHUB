@@ -5,7 +5,7 @@
    2. Base (página, textos, campos)
    3. Estrutura (barra superior, abas, seções)
    4. Componentes (botões, opções, tabelas, modais, avisos)
-   5. Telas: Controle, Alertas, Relatórios (Vendas, Controle, Metas),
+   5. Telas: Controle, Alertas, Relatórios (Controle, Metas),
       Notas fiscais, Configurações
    ============================================================ */
 
@@ -34,6 +34,9 @@
   --radius:8px;
   --radius-sm:6px;
   --font:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --font-titulo:"Syne",var(--font);   /* títulos das abas e seletor de abas */
+  --amarelo:#e2c044;
+  --amarelo-soft:rgba(226,192,68,.14);
 
   /* Ajustáveis em Configurações > Aparência */
   --fs-navbar:13px;--clr-navbar:var(--text2);
@@ -59,6 +62,8 @@ html[data-theme="light"]{
   --success-soft:rgba(46,125,79,.09);
   --warn:#9a6a14;
   --warn-soft:rgba(154,106,20,.09);
+  --amarelo:#8a6d00;
+  --amarelo-soft:rgba(176,140,0,.13);
   --overlay:rgba(20,24,28,.45);
   --shadow:0 8px 32px rgba(20,24,28,.18);
 }
@@ -95,7 +100,6 @@ html:not([data-theme="light"]) input[type=date]::-webkit-calendar-picker-indicat
 textarea{resize:vertical;min-height:80px;line-height:1.5;white-space:pre-wrap}
 select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%238a929b' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer}
 select option{background:var(--surface)}
-.input-sm{min-height:30px;padding:4px 8px;font-size:13px}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px}::-webkit-scrollbar-thumb:hover{background:var(--text3)}
 
 /* ---------- 3. ESTRUTURA ---------- */
@@ -117,9 +121,9 @@ html[data-theme="light"] .logo-escuro{display:none}
 .topbar-logo img{height:34px;width:auto}
 .tab-nav{display:flex;align-items:stretch;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .tab-nav::-webkit-scrollbar{display:none}
-.tab-btn{padding:0 12px;display:flex;align-items:center;gap:6px;font-family:var(--font);font-weight:500;font-size:var(--fs-navbar);color:var(--clr-navbar);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;flex-shrink:0}
+.tab-btn{padding:0 12px;display:flex;align-items:center;gap:6px;font-family:var(--font-titulo);font-weight:700;font-size:var(--fs-navbar);color:var(--clr-navbar);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;flex-shrink:0}
 .tab-btn:hover{color:var(--text)}
-.tab-btn.active{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+.tab-btn.active{color:var(--text);border-bottom-color:var(--accent)}
 .tab-count{font-size:11px;color:var(--text3);font-weight:500;font-variant-numeric:tabular-nums}
 .tab-alerta{display:none;min-width:18px;padding:0 5px;border-radius:9px;background:var(--danger);color:#fff;font-size:11px;font-weight:600;line-height:18px;text-align:center;font-variant-numeric:tabular-nums}
 .topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
@@ -138,7 +142,7 @@ html[data-theme="light"] .logo-escuro{display:none}
 @media(max-width:600px){.main{padding:16px 12px 32px}}
 
 .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-.page-title{font-size:20px;font-weight:600;color:var(--text)}
+.page-title{font-family:var(--font-titulo);font-size:22px;font-weight:800;color:var(--text)}
 .page-sub{font-size:13px;color:var(--text3);margin-top:2px}
 .page-acoes{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 
@@ -159,9 +163,9 @@ html[data-theme="light"] .logo-escuro{display:none}
 
 /* Sub-abas (Controle: Marítimo/Rodoviário/...; Relatórios: Vendas/Controle/Metas) */
 .sub-abas{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto;scrollbar-width:none}
-.sub-aba{padding:9px 14px;font-family:var(--font);font-size:14px;font-weight:500;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.sub-aba{padding:9px 14px;font-family:var(--font-titulo);font-size:14px;font-weight:700;color:var(--text2);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
 .sub-aba:hover{color:var(--text)}
-.sub-aba.active{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+.sub-aba.active{color:var(--text);border-bottom-color:var(--accent)}
 
 /* ---------- 4. COMPONENTES ---------- */
 /* Botões */
@@ -200,19 +204,13 @@ html[data-theme="light"] .logo-escuro{display:none}
 .emb-box{width:16px;height:16px;border:1.5px solid var(--text3);border-radius:3px;background:var(--surface);flex-shrink:0;position:relative}
 .embarque-check.checked{border-color:var(--accent)}
 .embarque-check.checked .emb-box{background:var(--accent-bg);border-color:var(--accent-bg)}
-.embarque-check.checked .emb-box::after,.pdf-opt-check:has(input:checked) .pdf-opt-box::after{content:'';position:absolute;left:4px;top:1px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.embarque-check.checked .emb-box::after{content:'';position:absolute;left:4px;top:1px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .check-texto{font-size:13px;color:var(--text2);line-height:1.4}
 .check-texto strong{display:block;color:var(--text);font-weight:600}
 .check-texto span{font-size:12px;color:var(--text3)}
 .check-texto.perigo strong{color:var(--danger)}
 
 /* Opção com caixa desenhada (incluir pedidos no PDF) */
-.pdf-opt-check{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;margin:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;user-select:none;font-size:13px;font-weight:400;color:var(--text2)}
-.pdf-opt-check:hover{border-color:var(--text3);color:var(--text)}
-.pdf-opt-check input{display:none}
-.pdf-opt-box{width:16px;height:16px;border:1.5px solid var(--text3);border-radius:3px;background:var(--surface);flex-shrink:0;position:relative}
-.pdf-opt-check:has(input:checked){border-color:var(--accent);color:var(--text)}
-.pdf-opt-check:has(input:checked) .pdf-opt-box{background:var(--accent-bg);border-color:var(--accent-bg)}
 
 /* Lista de sugestões (busca) */
 .autocomplete-wrap{position:relative}
@@ -225,17 +223,16 @@ html[data-theme="light"] .logo-escuro{display:none}
 
 /* Etiquetas */
 .chip{display:inline-block;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:600;background:var(--surface3);color:var(--text2);vertical-align:middle;border:none;font-family:var(--font);line-height:1.6;white-space:nowrap}
-.chip-accent{background:var(--accent-soft);color:var(--accent)}
 .chip-warn{background:var(--warn-soft);color:var(--warn)}
 .chip-success{background:var(--success-soft);color:var(--success)}
 .chip-danger{background:var(--danger-soft);color:var(--danger)}
+.chip-amarelo{background:var(--amarelo-soft);color:var(--amarelo)}
 .chip.clickable,.status-chip.clickable{cursor:pointer}
 .chip.clickable:hover,.status-chip.clickable:hover{filter:brightness(1.15)}
 .selo{display:inline-block;margin-top:2px;padding:1px 6px;border-radius:4px;font-size:11px;font-weight:600;background:var(--surface3);color:var(--text3)}
 .selo-perigo{background:var(--danger-soft);color:var(--danger)}
 
 /* Tabelas */
-.tabela-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;-webkit-overflow-scrolling:touch}
 .pedidos-det-table{width:100%;border-collapse:collapse;font-size:var(--fs-table)}
 .pedidos-det-table th{background:var(--surface2);padding:8px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--clr-table-th);white-space:nowrap;border-bottom:1px solid var(--border)}
 .pedidos-det-table td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--clr-table-td)}
@@ -243,9 +240,6 @@ html[data-theme="light"] .logo-escuro{display:none}
 .pedidos-det-table tbody tr:hover td{background:var(--surface2)}
 .pedidos-det-table th.num,.pedidos-det-table td.num{text-align:right}
 .pedidos-det-table tfoot td{border-top:1px solid var(--border);border-bottom:none}
-.pedidos-det-table .pdn{font-weight:600;font-variant-numeric:tabular-nums}
-.pedidos-det-table .pdn.rev{color:var(--warn)}
-.pedidos-det-table .pdv{font-weight:600;font-variant-numeric:tabular-nums}
 
 /* Modais */
 .modal-backdrop{position:fixed;inset:0;background:var(--overlay);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -346,6 +340,7 @@ select.ctrl-filter-input{padding-right:28px}
 .dt-real{color:var(--success);font-weight:600;font-variant-numeric:tabular-nums}
 .ctrl-actions{display:flex;gap:5px;align-items:center;justify-content:center}
 .fat-check{cursor:pointer;font-size:12px;padding:2px 9px}
+.fat-check.fat-sim{background:none;border:none;font-size:16px;line-height:1;padding:2px}
 .fat-check:hover{filter:brightness(1.15)}
 
 /* Colunas congeladas */
@@ -410,16 +405,10 @@ select.ctrl-filter-input{padding-right:28px}
 .rel-advanced-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 @media(max-width:900px){.rel-advanced-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.rel-advanced-row{grid-template-columns:1fr}}
-.rel-active-filters{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.rel-active-filters:empty{display:none}
-.rel-filter-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;background:var(--accent-soft);border-radius:4px;font-size:12px;color:var(--accent);font-weight:500}
-.rel-filter-chip button{background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;line-height:1;padding:0}
 .rel-acoes{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:16px}
 .rel-acoes .direita{display:flex;gap:8px;flex-wrap:wrap}
 .rel-topo{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
 .periodo-badge{display:inline-block;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;color:var(--text);font-weight:500;font-variant-numeric:tabular-nums}
-.pdf-result{margin-bottom:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.pdf-result strong{font-size:13px;color:var(--text)}
 .rel-loading,.rel-empty{text-align:center;padding:48px 20px;color:var(--text3)}
 .rel-empty strong{display:block;font-size:15px;color:var(--text2);margin-bottom:4px}
 
@@ -436,11 +425,7 @@ select.ctrl-filter-input{padding-right:28px}
 .kpi-box .v{font-size:14px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
 
 /* Cartões */
-.rel-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
-@media(max-width:900px){.rel-grid{grid-template-columns:1fr}}
 .rel-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px}
-.rel-grid .rel-card{margin-bottom:0}
-.rel-card.full{grid-column:1/-1}
 .rel-card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .rel-card-title{font-size:15px;font-weight:600;color:var(--text)}
 .rel-card-badge{font-size:12px;color:var(--text3)}
@@ -459,9 +444,7 @@ select.ctrl-filter-input{padding-right:28px}
 .rank-table .rank-pos{font-weight:600;font-size:12px;color:var(--text3);width:28px;font-variant-numeric:tabular-nums}
 .rank-table .rank-pos.top{color:var(--accent)}
 .rank-table .rank-name{font-weight:500;color:var(--text)}
-.rank-table .rank-sub{font-size:12px;color:var(--text3);margin-top:1px}
 .rank-table .rank-val{font-weight:600;color:var(--text);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-.rank-table .rank-qty{font-size:12px;color:var(--text3);text-align:right;white-space:nowrap}
 .bar-wrap{display:flex;flex-direction:column;gap:10px}
 .bar-row{display:flex;flex-direction:column;gap:4px}
 .bar-label{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px}
@@ -471,22 +454,8 @@ select.ctrl-filter-input{padding-right:28px}
 .bar-fill{height:100%;border-radius:4px;background:var(--accent)}
 .bar-fill.claro{opacity:.55}
 .chart-wrap{position:relative;width:100%;height:200px}
-.tabela-split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:500px){.tabela-split{grid-template-columns:1fr}}
-.tabela-kpi{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;text-align:center}
-.tabela-kpi label{font-size:12px;color:var(--text2);margin-bottom:4px}
-.tabela-kpi .tv{font-size:18px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
-.tabela-kpi .ts{font-size:12px;color:var(--text3);margin-top:3px}
 
 /* Pedidos do período (paginação) */
-.det-busca{width:180px;min-height:30px;padding:4px 8px;font-size:13px}
-.det-pagination{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px}
-.det-pagination-info{font-size:12px;color:var(--text3)}
-.det-pagination-btns{display:flex;gap:6px;align-items:center}
-.det-pag-btn{padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer;font-variant-numeric:tabular-nums}
-.det-pag-btn:hover:not(:disabled){border-color:var(--text3);color:var(--text)}
-.det-pag-btn:disabled{opacity:.4;cursor:not-allowed}
-.det-pag-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);font-weight:600}
 
 /* Relatório de Controle */
 .bloco-mes-titulo{font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px}

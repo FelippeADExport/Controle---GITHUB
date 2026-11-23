@@ -51,7 +51,7 @@ function switchTab(t){
   const btnEl=document.getElementById('tab-'+t+'-btn');
   if(tabEl)tabEl.classList.add('active');
   if(btnEl)btnEl.classList.add('active');
-  if(t==='relatorio'){initRelatorio();switchRelTab('vendas');}
+  if(t==='relatorio')switchRelTab('controle');
   if(t==='controle')loadControle();
   if(t==='notif')renderNotificacoes();
   if(t==='config'){_syncAparenciaUI(_lerAparencia());carregarConfiguracoes();}

@@ -61,7 +61,7 @@ function trocarChaveAcesso(){
 // As demais (salvar, excluir, gerar PDF/XLSX...) nunca são repetidas
 // automaticamente: se a resposta demorar mas o Google já tiver processado,
 // repetir poderia duplicar o registro ou o arquivo.
-const _FUNCOES_LEITURA = ['getClientes','getControle','getTodasNFs','getNFsPorProforma','getRelatorio',
+const _FUNCOES_LEITURA = ['getClientes','getControle','getTodasNFs','getNFsPorProforma',
   'getMetasPaises','getDadosMetasCompletos','getPaisesDestinoControle','getConfigLinks','verificarProformasDuplicadas'];
 
 // Gerar relatórios e PDFs pode levar mais de um minuto no Apps Script

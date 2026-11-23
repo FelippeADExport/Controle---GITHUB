@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 <title>AD Export - Controle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
@@ -133,13 +136,11 @@ if ('serviceWorker' in navigator) {
               <option value="ag. pagamento">Ag. pagamento</option>
               <option value="proforma enviada">Proforma enviada</option>
               <option value="ag. produção">Ag. produção</option>
-              <option value="ag. nomeação agente">Ag. nomeação agente</option>
               <option value="ag. instrução de embarque">Ag. instrução de embarque</option>
               <option value="ag. reserva/booking">Ag. reserva/booking</option>
               <option value="transferência de navio">Transferência de navio</option>
               <option value="ag. embarque">Ag. embarque</option>
               <option value="embarcado">Embarcado</option>
-              <option value="embarcou na fábrica">Embarcou na fábrica</option>
               <option value="finalizado">Finalizado</option>
               <option value="cancelado">Cancelado</option>
             </select>
@@ -337,138 +338,12 @@ if ('serviceWorker' in navigator) {
         <div><h1 class="page-title">Relatórios</h1></div>
       </div>
       <div class="sub-abas">
-        <button class="sub-aba active" id="subRelVendasBtn" onclick="switchRelTab('vendas')">Vendas</button>
-        <button class="sub-aba" id="subRelControleBtn" onclick="switchRelTab('controle')">Controle</button>
+        <button class="sub-aba active" id="subRelControleBtn" onclick="switchRelTab('controle')">Controle</button>
         <button class="sub-aba" id="subRelMetasBtn" onclick="switchRelTab('metas')">Metas</button>
       </div>
 
-      <!-- ===== VENDAS ===== -->
-      <div id="subRelVendas">
-        <div class="rel-hero">
-          <p class="page-sub" style="margin:0 0 14px;">Selecione o período e os filtros para gerar a análise.</p>
-          <div class="rel-filters">
-            <div class="rel-filter-group"><label for="relDataIni">Data inicial</label><input type="date" id="relDataIni"></div>
-            <div class="rel-filter-group"><label for="relDataFim">Data final</label><input type="date" id="relDataFim"></div>
-            <div class="rel-shortcut-btns">
-              <button class="rel-shortcut-btn" onclick="setRelPeriodo('hoje',event)">Hoje</button>
-              <button class="rel-shortcut-btn" onclick="setRelPeriodo('semana',event)">Esta semana</button>
-              <button class="rel-shortcut-btn" onclick="setRelPeriodo('mes',event)">Este mês</button>
-              <button class="rel-shortcut-btn" onclick="setRelPeriodo('trimestre',event)">Trimestre</button>
-              <button class="rel-shortcut-btn" onclick="setRelPeriodo('ano',event)">Este ano</button>
-              <button class="rel-shortcut-btn" onclick="setRelPeriodo('tudo',event)">Tudo</button>
-            </div>
-          </div>
-          <div class="rel-advanced-filters">
-            <div class="rel-advanced-row">
-              <div class="rel-filter-group"><label for="relFiltroCliente">Cliente</label>
-                <div class="autocomplete-wrap">
-                  <input type="text" id="relFiltroCliente" placeholder="Nome ou ID" autocomplete="off" oninput="relClienteInput(this.value)" onfocus="relClienteInput(this.value)" onblur="setTimeout(()=>document.getElementById('relClienteDropdown').classList.add('hidden'),200)">
-                  <div class="autocomplete-list hidden" id="relClienteDropdown"></div>
-                </div>
-              </div>
-              <div class="rel-filter-group"><label for="relFiltroPais">País</label>
-                <div class="autocomplete-wrap">
-                  <input type="text" id="relFiltroPais" placeholder="Digite o país" autocomplete="off" oninput="relPaisInput(this.value)" onfocus="relPaisInput(this.value)" onblur="setTimeout(()=>document.getElementById('relPaisDropdown').classList.add('hidden'),200)" onkeydown="if(event.key==='Escape')document.getElementById('relPaisDropdown').classList.add('hidden')">
-                  <div class="autocomplete-list hidden" id="relPaisDropdown"></div>
-                </div>
-              </div>
-              <div class="rel-filter-group"><label>Tabela de preço</label>
-                <div class="price-toggle compacto">
-                  <div class="price-btn active" id="relTabBtnTodos" onclick="setRelTabela('')">Todos</div>
-                  <div class="price-btn" id="relTabBtnFOB" onclick="setRelTabela('FOB')">FOB</div>
-                  <div class="price-btn" id="relTabBtnEXW" onclick="setRelTabela('EXW')">EXW</div>
-                </div>
-              </div>
-            </div>
-            <div class="rel-active-filters" id="relActiveFilters"></div>
-          </div>
-          <div class="rel-acoes">
-            <button class="btn btn-secondary btn-sm" onclick="limparFiltros()">Limpar filtros</button>
-            <button class="btn btn-primary" onclick="gerarRelatorio()" id="btnGerarRel">Gerar relatório</button>
-          </div>
-        </div>
-
-        <div id="relLoading" class="rel-loading hidden"><span class="spin"></span><div class="mt-12">Calculando relatório...</div></div>
-        <div id="relEmpty" class="rel-empty hidden"><strong>Nenhum pedido encontrado</strong>Tente um período diferente ou ajuste os filtros.</div>
-
-        <div id="relResultado" class="hidden">
-          <div class="rel-topo">
-            <div>
-              <div class="periodo-badge" id="relPeriodoBadge">—</div>
-              <div class="hint" id="relFiltrosAtivosDisplay"></div>
-            </div>
-            <div class="page-acoes">
-              <label class="pdf-opt-check" id="optIncluirPedidos" title="Adiciona ao PDF a tabela com todos os pedidos do período"><input type="checkbox" id="chkIncluirPedidos" onchange="toggleIncluirPedidos()"><span class="pdf-opt-box"></span><span>Incluir lista de pedidos no PDF</span></label>
-              <button class="btn btn-pdf" id="btnRelPdf" onclick="exportarPdfRelatorio()">Exportar PDF do relatório</button>
-            </div>
-          </div>
-          <div id="relPdfResultBox" class="pdf-result hidden">
-            <div><strong>PDF salvo no Drive</strong><div class="sub" id="relPdfNome"></div></div>
-            <a id="relPdfLink" href="#" target="_blank" class="btn btn-sm btn-secondary">Abrir PDF</a>
-          </div>
-          <div class="rel-kpis">
-            <div class="kpi-card"><div class="kpi-label">Total faturado</div><div class="kpi-value" id="kpiTotal">—</div><div class="kpi-sub" id="kpiTotalSub">—</div></div>
-            <div class="kpi-card"><div class="kpi-label">Pedidos no período</div><div class="kpi-value" id="kpiQtd">—</div><div class="kpi-sub" id="kpiQtdSub">pedidos</div></div>
-            <div class="kpi-card"><div class="kpi-label">Ticket médio</div><div class="kpi-value" id="kpiTicket">—</div><div class="kpi-sub">por pedido</div></div>
-            <div class="kpi-card"><div class="kpi-label">Total de descontos</div><div class="kpi-value" id="kpiDesconto">—</div><div class="kpi-sub" id="kpiDescontoSub">—</div></div>
-          </div>
-          <div class="rel-grid">
-            <div class="rel-card full" id="cardMensal">
-              <div class="rel-card-header"><span class="rel-card-title">Evolução mensal</span><span class="rel-card-badge" id="relMensalBadge">—</span></div>
-              <div class="rel-card-body"><div class="chart-wrap" id="chartWrap"><canvas id="chartMensal"></canvas></div></div>
-            </div>
-            <div class="rel-card">
-              <div class="rel-card-header"><span class="rel-card-title">FOB x EXW</span></div>
-              <div class="rel-card-body">
-                <div class="tabela-split">
-                  <div class="tabela-kpi"><label>FOB</label><div class="tv" id="fobValor">—</div><div class="ts" id="fobQtd">—</div></div>
-                  <div class="tabela-kpi"><label>EXW</label><div class="tv" id="exwValor">—</div><div class="ts" id="exwQtd">—</div></div>
-                </div>
-                <div class="bar-wrap mt-12">
-                  <div class="bar-row"><div class="bar-label"><span>FOB</span><span id="fobPerc">—</span></div><div class="bar-track"><div class="bar-fill" id="fobBar" style="width:0%"></div></div></div>
-                  <div class="bar-row"><div class="bar-label"><span>EXW</span><span id="exwPerc">—</span></div><div class="bar-track"><div class="bar-fill claro" id="exwBar" style="width:0%"></div></div></div>
-                </div>
-              </div>
-            </div>
-            <div class="rel-card">
-              <div class="rel-card-header"><span class="rel-card-title">Por país</span><span class="rel-card-badge" id="relPaisesBadge">—</span></div>
-              <div class="rel-card-body"><div class="bar-wrap" id="barPaises"></div></div>
-            </div>
-          </div>
-          <div class="rel-grid">
-            <div class="rel-card">
-              <div class="rel-card-header"><span class="rel-card-title">Top clientes</span><span class="rel-card-badge" id="relClientesBadge">—</span></div>
-              <div class="rel-card-body sem-padding"><table class="rank-table" id="rankClientes"></table></div>
-            </div>
-            <div class="rel-card">
-              <div class="rel-card-header"><span class="rel-card-title">Top produtos</span><span class="rel-card-badge" id="relProdutosBadge">—</span></div>
-              <div class="rel-card-body sem-padding"><table class="rank-table" id="rankProdutos"></table></div>
-            </div>
-          </div>
-          <div class="rel-card" id="cardPedidosDet">
-            <div class="rel-card-header">
-              <span class="rel-card-title">Pedidos do período</span>
-              <div class="page-acoes">
-                <span class="rel-card-badge" id="relPedidosDetBadge">—</span>
-                <input type="search" id="detBusca" class="det-busca" placeholder="Filtrar" aria-label="Filtrar pedidos" oninput="filtrarTabelaDet()">
-              </div>
-            </div>
-            <div class="rel-card-body sem-padding rolavel">
-              <table class="pedidos-det-table" style="min-width:580px;">
-                <thead><tr><th>Nº pedido</th><th>Data</th><th>Cliente</th><th>País</th><th>Tabela</th><th class="num">Valor total</th><th class="num">Desconto</th></tr></thead>
-                <tbody id="detTbody"></tbody>
-              </table>
-            </div>
-            <div class="det-pagination" id="detPagination">
-              <div class="det-pagination-info" id="detPagInfo">—</div>
-              <div class="det-pagination-btns" id="detPagBtns"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- ===== CONTROLE ===== -->
-      <div id="subRelControle" style="display:none;">
+      <div id="subRelControle">
         <div class="rel-hero">
           <p class="page-sub" style="margin:0 0 14px;">Faturamento, comissões e ranking por período.</p>
           <div class="rel-filters">
@@ -1090,13 +965,11 @@ if ('serviceWorker' in navigator) {
           <option value="ag. pagamento">Ag. pagamento</option>
           <option value="proforma enviada">Proforma enviada</option>
           <option value="ag. produção">Ag. produção</option>
-          <option value="ag. nomeação agente">Ag. nomeação agente</option>
           <option value="ag. instrução de embarque">Ag. instrução de embarque</option>
           <option value="ag. reserva/booking">Ag. reserva/booking</option>
           <option value="transferência de navio">Transferência de navio</option>
           <option value="ag. embarque">Ag. embarque</option>
           <option value="embarcado">Embarcado</option>
-          <option value="embarcou na fábrica">Embarcou na fábrica</option>
           <option value="finalizado">Finalizado</option>
           <option value="cancelado">Cancelado</option>
         </select>
@@ -1288,7 +1161,6 @@ if ('serviceWorker' in navigator) {
 <script src="js/controle-colunas.js"></script>
 <script src="js/nf.js"></script>
 <script src="js/notificacoes.js"></script>
-<script src="js/relatorios.js"></script>
 <script src="js/relatorio-controle.js"></script>
 <script src="js/metas.js"></script>
 <script src="js/config.js"></script>

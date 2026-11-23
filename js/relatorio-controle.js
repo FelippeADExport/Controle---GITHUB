@@ -1,7 +1,30 @@
 // ============================================================
-// ABA RELATÓRIOS > CONTROLE: faturamento, comissões, pagamentos
-// e faturas vencidas (a partir das NFs), com exportação PDF/XLSX
+// ABA RELATÓRIOS: troca de sub-aba (Controle / Metas) e o
+// Relatório de Controle: faturamento, comissões, pagamentos e
+// faturas vencidas (a partir das NFs), com exportação PDF/XLSX
 // ============================================================
+
+function switchRelTab(tab){
+  const abas = {controle:['subRelControleBtn','subRelControle'], metas:['subRelMetasBtn','subRelMetas']};
+  Object.keys(abas).forEach(t=>{
+    document.getElementById(abas[t][0]).classList.toggle('active', t===tab);
+    document.getElementById(abas[t][1]).style.display = t===tab ? 'block' : 'none';
+  });
+
+  if(tab==='controle'){
+    if(!document.getElementById('relCtrlDataIni').value){
+      const now=new Date(),pad=n=>String(n).padStart(2,'0');
+      document.getElementById('relCtrlDataIni').value=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-01';
+      document.getElementById('relCtrlDataFim').value=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+    }
+    if(!CONTROLE||!CONTROLE.length)loadControle();
+    _initRelCtrlSecoes();
+  }
+  if(tab==='metas'){
+    if(!CONTROLE||!CONTROLE.length)loadControle();
+    initMetas();
+  }
+}
 
 // Seções que o usuário pode exibir/ocultar (vale para tela, PDF e XLSX)
 const REL_CTRL_SECOES = [

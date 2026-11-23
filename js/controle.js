@@ -113,8 +113,8 @@ function _celExcluir(r){
 }
 // Proforma + marcações (Ponta, Classe B, comissão manual) + links dos PDFs
 function _celProforma(r){
-  const marcas = (r.ponta==='SIM'?' <span class="chip chip-warn" title="Ponta de Produção">Ponta</span>':'')
-    + (r.classe_b==='SIM'?' <span class="chip chip-warn" title="Classe B">Classe B</span>':'')
+  const marcas = (r.ponta==='SIM'?' <span class="chip chip-amarelo" title="Ponta de Produção">Ponta A</span>':'')
+    + (r.classe_b==='SIM'?' <span class="chip chip-danger" title="Classe B">Classe B</span>':'')
     + (_temComissaoManual(r)?' <span class="chip" title="Comissão manual (sem NF lançada): valores em R$ estimados pela cotação média">Manual</span>':'');
   const links = (r.pdf_proforma?`<a class="link-doc" href="${esc(r.pdf_proforma)}" target="_blank" title="Abrir proforma">Proforma</a>`:'')
     + (r.pdf_invoice?`<a class="link-doc" href="${esc(r.pdf_invoice)}" target="_blank" title="Abrir invoice">Invoice</a>`:'');
@@ -129,7 +129,7 @@ function _celValor(r, comQtd){
 }
 function _celFaturamento(r){
   const fat = r.faturado==='SIM';
-  return `<td><button class="chip fat-check ${fat?'chip-success':''}" title="Ver / lançar notas fiscais" onclick="abrirModalNF('${esc(r.numero_proforma)}','${esc(r.empresa)}')">${fat?'Sim':'Não'}</button></td>`;
+  return `<td><button class="fat-check ${fat?'fat-sim':'chip'}" title="${fat?'Faturado: ver':'Ver / lançar'} notas fiscais" aria-label="${fat?'Faturado: ver':'Ver / lançar'} notas fiscais" onclick="abrirModalNF('${esc(r.numero_proforma)}','${esc(r.empresa)}')">${fat?'✅':'Não'}</button></td>`;
 }
 function _celStatus(r){
   return `<div class="status-inline-wrap" data-rid="${esc(r.numero_proforma)}"><span class="status-chip ${STATUS_CLASSE[r.status]||''} clickable" data-inline-status="1">${r.status?esc(r.status):'—'}</span></div>`;
@@ -179,8 +179,8 @@ function _celulaComissaoCol(r){
     ? `<br><span class="com-valor">US$ ${fmtN(valorUS)}</span>${valorRS?`<br><span class="sub-num">R$ ${fmtN(valorRS)}</span>`:''}`
     : '';
   const linhaData = r.data_pagamento_comissao
-    ? `<br><button class="link-btn" onclick="abrirComissaoPagaRapida('${esc(r.numero_proforma)}')" title="Editar a data de pagamento da comissão">Paga em ${esc(r.data_pagamento_comissao)}</button>`
-    : `<br><button class="link-btn muted" onclick="abrirComissaoPagaRapida('${esc(r.numero_proforma)}')" title="Marcar a comissão como paga">Marcar como paga</button>`;
+    ? `<br><button class="link-btn" onclick="abrirComissaoPagaRapida('${esc(r.numero_proforma)}')" title="Comissão paga: editar a data">${esc(r.data_pagamento_comissao)}</button>`
+    : `<br><button class="link-btn muted" onclick="abrirComissaoPagaRapida('${esc(r.numero_proforma)}')" title="Comissão não paga: marcar como paga" aria-label="Marcar a comissão como paga">-</button>`;
   return `<td class="num cel-comissao">${linhaPct + linhaValor + linhaData}</td>`;
 }
 

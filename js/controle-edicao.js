@@ -115,7 +115,7 @@ function abrirModalControle(id){
       document.getElementById('ctrl-data-pagamento').value=brParaIsoCtrl(r.data_pagamento||'');
       document.getElementById('ctrl-data-prev-pagamento').value=brParaIsoCtrl(r.data_prev_pagamento||'');
       document.getElementById('ctrl-data-pagamento-comissao').value=brParaIsoCtrl(r.data_pagamento_comissao||'');
-      document.getElementById('ctrl-status').value=r.status||'';
+      _definirStatusNoFormulario(r.status||'');
       document.getElementById('ctrl-pdf-invoice').value=r.pdf_invoice||'';
       document.getElementById('ctrl-pais-destino').value=r.pais_destino||'';
       _setFaturadoDisplay(r.faturado==='SIM');
@@ -174,6 +174,17 @@ function _aplicarBloqueioCamposNIN(bloquear){
     const el = document.getElementById(id);
     if(el){ el.style.opacity = ''; el.style.pointerEvents = ''; el.disabled = false; }
   });
+}
+
+// Status que saiu da lista (ex.: "ag. nomeação agente") continua no registro antigo:
+// entra como opção só para este registro, para não ser apagado ao salvar.
+function _definirStatusNoFormulario(status){
+  const sel=document.getElementById('ctrl-status');
+  sel.querySelectorAll('option[data-antigo]').forEach(o=>o.remove());
+  if(status && ![...sel.options].some(o=>o.value===status)){
+    const o=document.createElement('option');o.value=status;o.textContent=status.charAt(0).toUpperCase()+status.slice(1);o.dataset.antigo='1';sel.appendChild(o);
+  }
+  sel.value=status;
 }
 
 function fecharModalControle(){fecharModal('modalControle');}
@@ -438,10 +449,10 @@ const _STATUS_OPTS=[
   {v:'ag. liberação financeiro',l:'Ag. liberação financeiro'},{v:'ag. informações',l:'Ag. informações'},
   {v:'ag. aprovação cliente',l:'Ag. aprovação cliente'},{v:'ag. pagamento',l:'Ag. pagamento'},
   {v:'proforma enviada',l:'Proforma enviada'},{v:'ag. produção',l:'Ag. produção'},
-  {v:'ag. nomeação agente',l:'Ag. nomeação agente'},{v:'ag. instrução de embarque',l:'Ag. instrução embarque'},
+  {v:'ag. instrução de embarque',l:'Ag. instrução embarque'},
   {v:'ag. reserva/booking',l:'Ag. reserva/booking'},{v:'transferência de navio',l:'Transferência de navio'},
   {v:'ag. embarque',l:'Ag. embarque'},{v:'embarcado',l:'Embarcado'},
-  {v:'embarcou na fábrica',l:'Embarcou na fábrica'},{v:'finalizado',l:'Finalizado'},
+  {v:'finalizado',l:'Finalizado'},
   {v:'cancelado',l:'Cancelado'},
 ];
 const _INLINE_OPTS = {
