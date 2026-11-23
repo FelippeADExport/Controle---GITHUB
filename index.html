@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+<title>AD Export - Controle</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#222529">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script>
+// Aplica o tema salvo antes de desenhar a página (a tela de abertura já sai no tema certo)
+try { if (localStorage.getItem('adexport_theme') === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch (e) {}
+
+// Atualização automática: sempre abre a versão nova do site
+if ('serviceWorker' in navigator) {
+  const tinhaSW = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => {
+    reg.update();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') reg.update();
+    });
+  }).catch(() => {});
+  let recarregou = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!tinhaSW || recarregou) return;
+    recarregou = true;
+    location.reload();
+  });
+}
+</script>
+</head>
+<body>
+<div id="loader">
+  <div class="loader-logo">
+    <img class="logo-escuro" src="icons/logo-escuro.png" alt="AD Export">
+    <img class="logo-claro" src="icons/logo-claro.png" alt="AD Export">
+  </div>
+  <div class="loader-text">Carregando dados...</div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+</div>
+
+<div id="app">
+  <!-- ==================== BARRA SUPERIOR ==================== -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">
+        <img class="logo-escuro" src="icons/logo-escuro.png" alt="AD Export">
+        <img class="logo-claro" src="icons/logo-claro.png" alt="AD Export">
+      </div>
+      <nav class="tab-nav">
+        <button class="tab-btn active" id="tab-controle-btn" onclick="switchTab('controle')">Controle <span class="tab-count" id="tabControleCount">—</span></button>
+        <button class="tab-btn" id="tab-notif-btn" onclick="switchTab('notif')">Alertas <span class="tab-alerta" id="tabNotifCount">0</span></button>
+        <button class="tab-btn" id="tab-relatorio-btn" onclick="switchTab('relatorio')">Relatórios</button>
+        <button class="tab-btn" id="tab-config-btn" onclick="switchTab('config')">Configurações</button>
+      </nav>
+    </div>
+    <div class="topbar-right">
+      <span id="offlineStatus" class="conn-status">● Online</span>
+      <button class="top-btn top-icon" id="btnRefresh" onclick="refreshAll()" title="Atualizar dados da planilha" aria-label="Atualizar dados"><span>↻</span></button>
+      <button class="top-btn top-icon" id="themeToggle" onclick="toggleTheme()"><span id="themeLabel">☀️</span></button>
+    </div>
+  </header>
+
+  <!-- ==================== ABA: CONTROLE ==================== -->
+  <div class="tab-content" id="tab-controle">
+    <div class="main larga">
+      <div class="page-head">
+        <div><h1 class="page-title">Controle de pedidos</h1><div class="page-sub" id="controleSubtitle">Carregando...</div></div>
+        <div class="page-acoes">
+          <button class="btn btn-primary" onclick="abrirModalControle(null)">Novo registro</button>
+          <button id="btnVincularProformas" class="btn btn-secondary" onclick="vincularProformasLote()" title="Vincular arquivos da pasta do Drive em lote">Vincular arquivos</button>
+          <button class="btn btn-secondary btn-icon btn-icon-lg" onclick="loadControle()" title="Recarregar registros" aria-label="Recarregar registros">↻</button>
+        </div>
+      </div>
+
+      <!-- Filtro global de período e empresa -->
+      <div class="ctrl-periodo">
+        <span class="rotulo">Período</span>
+        <button class="rel-shortcut-btn" onclick="setCtrlPeriodoGlobal('hoje',this)">Hoje</button>
+        <button class="rel-shortcut-btn" onclick="setCtrlPeriodoGlobal('semana',this)">7 dias</button>
+        <button class="rel-shortcut-btn" onclick="setCtrlPeriodoGlobal('quinzena',this)">15 dias</button>
+        <button class="rel-shortcut-btn" onclick="setCtrlPeriodoGlobal('mes',this)">Mês</button>
+        <button class="rel-shortcut-btn" onclick="setCtrlPeriodoGlobal('ano',this)">Ano</button>
+        <span class="sep"></span>
+        <input type="date" id="ctrlPeriodoIni" onchange="setCtrlPeriodoCustom()" aria-label="Data inicial">
+        <span class="rotulo">até</span>
+        <input type="date" id="ctrlPeriodoFim" onchange="setCtrlPeriodoCustom()" aria-label="Data final">
+        <span class="sep"></span>
+        <label class="rotulo" for="ctrlEmpresaFiltro" style="margin:0;">Empresa</label>
+        <select id="ctrlEmpresaFiltro" onchange="onCtrlEmpresaFiltroChange()"><option value="">Todos</option></select>
+        <button class="btn btn-secondary btn-sm" onclick="limparPeriodoGlobal()">Limpar</button>
+      </div>
+
+      <!-- Filtros (comuns a todas as sub-abas + específicos de Marítimo/Rodoviário) -->
+      <div id="ctrlFiltrosBar" class="ctrl-filter-bar">
+        <button class="col-bar-toggle" id="btnToggleFiltros" onclick="toggleBarraFiltros()">▾ Filtros</button>
+        <div id="ctrlFiltrosContents" class="ctrl-filtros">
+          <div class="ctrl-filter-group">
+            <label for="fProforma">Proforma</label>
+            <input type="text" id="fProforma" class="ctrl-filter-input" placeholder="Nº proforma" oninput="filtrarControle()">
+          </div>
+          <div class="ctrl-filter-group">
+            <label for="fCliente">Cliente</label>
+            <div class="autocomplete-wrap">
+              <input type="text" id="fCliente" class="ctrl-filter-input" placeholder="Nome do cliente" autocomplete="off"
+                oninput="ctrlFiltroClienteInput('fCliente','ddFCliente');filtrarControle()" onfocus="ctrlFiltroClienteInput('fCliente','ddFCliente')"
+                onblur="setTimeout(()=>document.getElementById('ddFCliente').classList.add('hidden'),200)">
+              <div class="autocomplete-list hidden" id="ddFCliente"></div>
+            </div>
+          </div>
+          <div class="ctrl-filter-group">
+            <label for="fDestino">Destino</label>
+            <div class="autocomplete-wrap">
+              <input type="text" id="fDestino" class="ctrl-filter-input" placeholder="Porto, destino ou país" autocomplete="off"
+                oninput="ctrlFiltroDestinoInput();filtrarControle()" onfocus="ctrlFiltroDestinoInput()"
+                onblur="setTimeout(()=>document.getElementById('ddFDestino').classList.add('hidden'),200)">
+              <div class="autocomplete-list hidden" id="ddFDestino"></div>
+            </div>
+          </div>
+          <div class="ctrl-filter-group">
+            <label for="fStatus">Status</label>
+            <select id="fStatus" class="ctrl-filter-input" onchange="filtrarControle()">
+              <option value="">Todos</option>
+              <option value="ag. documentação">Ag. documentação</option>
+              <option value="ag. cadastro">Ag. cadastro</option>
+              <option value="ag. liberação financeiro">Ag. liberação financeiro</option>
+              <option value="ag. informações">Ag. informações</option>
+              <option value="ag. aprovação cliente">Ag. aprovação cliente</option>
+              <option value="ag. pagamento">Ag. pagamento</option>
+              <option value="proforma enviada">Proforma enviada</option>
+              <option value="ag. produção">Ag. produção</option>
+              <option value="ag. nomeação agente">Ag. nomeação agente</option>
+              <option value="ag. instrução de embarque">Ag. instrução de embarque</option>
+              <option value="ag. reserva/booking">Ag. reserva/booking</option>
+              <option value="transferência de navio">Transferência de navio</option>
+              <option value="ag. embarque">Ag. embarque</option>
+              <option value="embarcado">Embarcado</option>
+              <option value="embarcou na fábrica">Embarcou na fábrica</option>
+              <option value="finalizado">Finalizado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          </div>
+          <div class="ctrl-filter-group">
+            <label for="fFaturamento">Faturamento</label>
+            <select id="fFaturamento" class="ctrl-filter-input" onchange="filtrarControle()">
+              <option value="">Todos</option>
+              <option value="sim">Faturados (com NF)</option>
+              <option value="nao">Não faturados</option>
+            </select>
+          </div>
+          <!-- Específicos Marítimo -->
+          <div class="ctrl-filter-group flt-mar">
+            <label for="fMarAgente">Agente</label>
+            <select id="fMarAgente" class="ctrl-filter-input" onchange="filtrarControle()"><option value="">Todos</option></select>
+          </div>
+          <div class="ctrl-filter-group flt-mar">
+            <label for="fMarPortoOrig">Porto origem</label>
+            <select id="fMarPortoOrig" class="ctrl-filter-input" onchange="filtrarControle()"><option value="">Todos</option></select>
+          </div>
+          <div class="ctrl-filter-group flt-mar">
+            <label for="fMarPagamento">Pagamento</label>
+            <select id="fMarPagamento" class="ctrl-filter-input" onchange="filtrarControle()">
+              <option value="">Todos</option>
+              <option value="realizado">Realizado</option>
+              <option value="pendente">Pendente</option>
+            </select>
+          </div>
+          <!-- Específicos Rodoviário -->
+          <div class="ctrl-filter-group flt-rod hidden">
+            <label for="fRodTransportador">Transportador</label>
+            <select id="fRodTransportador" class="ctrl-filter-input" onchange="filtrarControle()"><option value="">Todos</option></select>
+          </div>
+          <div class="ctrl-filter-group flt-rod hidden">
+            <label for="fRodPagamento">Pagamento</label>
+            <select id="fRodPagamento" class="ctrl-filter-input" onchange="filtrarControle()">
+              <option value="">Todos</option>
+              <option value="realizado">Realizado</option>
+              <option value="pendente">Pendente</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="limparFiltrosCtrl2()">Limpar filtros</button>
+        </div>
+      </div>
+
+      <!-- Barras de colunas (montadas pelo JS, uma por sub-aba) -->
+      <div class="col-toggle-bar" id="colToggleMar" style="display:none;"></div>
+      <div class="col-toggle-bar" id="colToggleRod" style="display:none;"></div>
+      <div class="col-toggle-bar" id="colToggleAmo" style="display:none;"></div>
+      <div class="col-toggle-bar" id="colToggleNIN" style="display:none;"></div>
+
+      <!-- Sub-abas -->
+      <div class="sub-abas">
+        <button class="sub-aba active" id="tabCtrlMarBtn" onclick="switchCtrlTab('maritimo')">Marítimo <span class="tab-count" id="ctrlMarCount"></span></button>
+        <button class="sub-aba" id="tabCtrlRodBtn" onclick="switchCtrlTab('rodoviario')">Rodoviário <span class="tab-count" id="ctrlRodCount"></span></button>
+        <button class="sub-aba" id="tabCtrlAmoBtn" onclick="switchCtrlTab('amostra')">Amostra <span class="tab-count" id="ctrlAmoCount"></span></button>
+        <button class="sub-aba" id="tabCtrlNINBtn" onclick="switchCtrlTab('nao_informado')">Não informado <span class="tab-count" id="ctrlNINCount"></span></button>
+      </div>
+
+      <div id="controleLoading" class="carregando"><span class="spin"></span>Carregando...</div>
+
+      <!-- MARÍTIMO -->
+      <div id="ctrlPainelMaritimo">
+        <div class="ctrl-table-wrap hidden" id="controleTableWrap">
+          <table class="ctrl-table" id="tblMar">
+            <thead><tr>
+              <th class="col-freeze col-freeze-0" data-col="mar-acao1">Ação</th>
+              <th class="col-freeze col-freeze-1" data-col="mar-cliente">Cliente</th>
+              <th class="col-freeze col-freeze-2" data-col="mar-empresa">Empresa</th>
+              <th class="col-freeze col-freeze-3" data-col="mar-proforma">Proforma</th>
+              <th data-col="mar-ad">Nº AD</th>
+              <th data-col="mar-valor">Valor / Qtd</th>
+              <th data-col="mar-status">Status</th>
+              <th data-col="mar-etq" class="col-etq-insp">Etiquetas</th>
+              <th data-col="mar-insp" class="col-etq-insp">Inspeção</th>
+              <th data-col="mar-fat">Faturamento</th>
+              <th data-col="mar-prazo">Prazo Pgto</th>
+              <th data-col="mar-pgto">Pagamento</th>
+              <th data-col="mar-bl">Data BL</th>
+              <th data-col="mar-etd">ETD / Saída</th>
+              <th data-col="mar-eta">ETA / Chegada</th>
+              <th data-col="mar-courrier">Courrier / Booking</th>
+              <th data-col="mar-agente">Agente / Armador</th>
+              <th data-col="mar-navio">Navio</th>
+              <th data-col="mar-porto-orig">Porto Origem</th>
+              <th data-col="mar-porto-dest">Porto Destino</th>
+              <th data-col="mar-obs">Observações</th>
+              <th data-col="mar-comissao" class="num">Comissão</th>
+              <th data-col="mar-acoes">Ação</th>
+            </tr></thead>
+            <tbody id="controleTbody"></tbody>
+          </table>
+        </div>
+        <div id="controleEmpty" class="vazio-tela hidden"><strong>Nenhum registro marítimo</strong>Clique em "Novo registro" para começar.</div>
+      </div>
+
+      <!-- RODOVIÁRIO -->
+      <div id="ctrlPainelRodoviario" class="hidden">
+        <div class="ctrl-table-wrap hidden" id="controleTableWrapRod">
+          <table class="ctrl-table" id="tblRod">
+            <thead><tr>
+              <th class="col-freeze col-freeze-0" data-col="rod-acao1">Ação</th>
+              <th class="col-freeze col-freeze-1" data-col="rod-cliente">Cliente</th>
+              <th class="col-freeze col-freeze-2" data-col="rod-empresa">Empresa</th>
+              <th class="col-freeze col-freeze-3" data-col="rod-proforma">Proforma</th>
+              <th data-col="rod-ad">Nº AD</th>
+              <th data-col="rod-valor">Valor / Qtd</th>
+              <th data-col="rod-status">Status</th>
+              <th data-col="rod-etq" class="col-etq-insp">Etiquetas</th>
+              <th data-col="rod-insp" class="col-etq-insp">Inspeção</th>
+              <th data-col="rod-fat">Faturamento</th>
+              <th data-col="rod-prazo">Prazo Pgto</th>
+              <th data-col="rod-pgto">Pagamento</th>
+              <th data-col="rod-carg">Carregamento</th>
+              <th data-col="rod-crt-num">Nº CRT</th>
+              <th data-col="rod-crt">Data CRT</th>
+              <th data-col="rod-transp">Transportador</th>
+              <th data-col="rod-dest">Destino</th>
+              <th data-col="rod-obs">Observações</th>
+              <th data-col="rod-comissao" class="num">Comissão</th>
+              <th data-col="rod-acoes">Ação</th>
+            </tr></thead>
+            <tbody id="controleTbodyRod"></tbody>
+          </table>
+        </div>
+        <div id="controleEmptyRod" class="vazio-tela hidden"><strong>Nenhum registro rodoviário</strong>Clique em "Novo registro" para começar.</div>
+      </div>
+
+      <!-- AMOSTRA -->
+      <div id="ctrlPainelAmostra" class="hidden">
+        <div class="ctrl-table-wrap hidden" id="controleTableWrapAmo">
+          <table class="ctrl-table" id="tblAmo">
+            <thead><tr>
+              <th class="col-freeze col-freeze-0" data-col="amo-acao1">Ação</th>
+              <th class="col-freeze col-freeze-1" data-col="amo-cliente">Cliente</th>
+              <th class="col-freeze col-freeze-2" data-col="amo-empresa">Empresa</th>
+              <th class="col-freeze col-freeze-3" data-col="amo-proforma">Proforma</th>
+              <th data-col="amo-ad">Nº AD</th>
+              <th data-col="amo-status">Status</th>
+              <th data-col="amo-valor">Valor / Qtd</th>
+              <th data-col="amo-fat">Faturamento</th>
+              <th data-col="amo-courrier">Courrier</th>
+              <th data-col="amo-transp">Transportador</th>
+              <th data-col="amo-dest">Destino</th>
+              <th data-col="amo-acoes">Ação</th>
+            </tr></thead>
+            <tbody id="controleTbodyAmo"></tbody>
+          </table>
+        </div>
+        <div id="controleEmptyAmo" class="vazio-tela hidden"><strong>Nenhum registro de amostra</strong>Clique em "Novo registro" e escolha Amostra como transporte.</div>
+      </div>
+
+      <!-- NÃO INFORMADO -->
+      <div id="ctrlPainelNaoInformado" class="hidden">
+        <div class="ctrl-table-wrap hidden" id="controleTableWrapNIN">
+          <table class="ctrl-table" id="tblNIN">
+            <thead><tr>
+              <th class="col-freeze col-freeze-0" data-col="nin-acao1">Ação</th>
+              <th class="col-freeze col-freeze-1" data-col="nin-cliente">Cliente</th>
+              <th class="col-freeze col-freeze-2" data-col="nin-empresa">Empresa</th>
+              <th class="col-freeze col-freeze-3" data-col="nin-proforma">Proforma</th>
+              <th data-col="nin-ad">Nº AD</th>
+              <th data-col="nin-status">Status</th>
+              <th data-col="nin-valor">Valor</th>
+              <th data-col="nin-fat">Faturamento</th>
+              <th data-col="nin-registro">Data Registro</th>
+              <th data-col="nin-obs">Observações</th>
+              <th data-col="nin-acoes">Ação</th>
+            </tr></thead>
+            <tbody id="controleTbodyNIN"></tbody>
+          </table>
+        </div>
+        <div id="controleEmptyNIN" class="vazio-tela hidden"><strong>Nenhum pedido sem informação</strong>Todos os registros têm tipo de transporte definido.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ABA: ALERTAS ==================== -->
+  <div class="tab-content" id="tab-notif">
+    <div class="main estreita">
+      <div class="page-head">
+        <div><h1 class="page-title">Alertas de pagamento</h1><div class="page-sub" id="notifSubtitle">Verificando...</div></div>
+        <button class="btn btn-secondary" onclick="limparNotificacoes()">Limpar alertas</button>
+      </div>
+      <div id="notifLista" class="notif-lista"></div>
+      <div id="notifEmpty" class="vazio-tela hidden"><strong>Nenhum alerta pendente</strong>Todos os pagamentos estão em dia.</div>
+    </div>
+  </div>
+
+  <!-- ==================== ABA: RELATÓRIOS ==================== -->
+  <div class="tab-content" id="tab-relatorio">
+    <div class="main">
+      <div class="page-head">
+        <div><h1 class="page-title">Relatórios</h1></div>
+      </div>
+      <div class="sub-abas">
+        <button class="sub-aba active" id="subRelVendasBtn" onclick="switchRelTab('vendas')">Vendas</button>
+        <button class="sub-aba" id="subRelControleBtn" onclick="switchRelTab('controle')">Controle</button>
+        <button class="sub-aba" id="subRelMetasBtn" onclick="switchRelTab('metas')">Metas</button>
+      </div>
+
+      <!-- ===== VENDAS ===== -->
+      <div id="subRelVendas">
+        <div class="rel-hero">
+          <p class="page-sub" style="margin:0 0 14px;">Selecione o período e os filtros para gerar a análise.</p>
+          <div class="rel-filters">
+            <div class="rel-filter-group"><label for="relDataIni">Data inicial</label><input type="date" id="relDataIni"></div>
+            <div class="rel-filter-group"><label for="relDataFim">Data final</label><input type="date" id="relDataFim"></div>
+            <div class="rel-shortcut-btns">
+              <button class="rel-shortcut-btn" onclick="setRelPeriodo('hoje',event)">Hoje</button>
+              <button class="rel-shortcut-btn" onclick="setRelPeriodo('semana',event)">Esta semana</button>
+              <button class="rel-shortcut-btn" onclick="setRelPeriodo('mes',event)">Este mês</button>
+              <button class="rel-shortcut-btn" onclick="setRelPeriodo('trimestre',event)">Trimestre</button>
+              <button class="rel-shortcut-btn" onclick="setRelPeriodo('ano',event)">Este ano</button>
+              <button class="rel-shortcut-btn" onclick="setRelPeriodo('tudo',event)">Tudo</button>
+            </div>
+          </div>
+          <div class="rel-advanced-filters">
+            <div class="rel-advanced-row">
+              <div class="rel-filter-group"><label for="relFiltroCliente">Cliente</label>
+                <div class="autocomplete-wrap">
+                  <input type="text" id="relFiltroCliente" placeholder="Nome ou ID" autocomplete="off" oninput="relClienteInput(this.value)" onfocus="relClienteInput(this.value)" onblur="setTimeout(()=>document.getElementById('relClienteDropdown').classList.add('hidden'),200)">
+                  <div class="autocomplete-list hidden" id="relClienteDropdown"></div>
+                </div>
+              </div>
+              <div class="rel-filter-group"><label for="relFiltroPais">País</label>
+                <div class="autocomplete-wrap">
+                  <input type="text" id="relFiltroPais" placeholder="Digite o país" autocomplete="off" oninput="relPaisInput(this.value)" onfocus="relPaisInput(this.value)" onblur="setTimeout(()=>document.getElementById('relPaisDropdown').classList.add('hidden'),200)" onkeydown="if(event.key==='Escape')document.getElementById('relPaisDropdown').classList.add('hidden')">
+                  <div class="autocomplete-list hidden" id="relPaisDropdown"></div>
+                </div>
+              </div>
+              <div class="rel-filter-group"><label>Tabela de preço</label>
+                <div class="price-toggle compacto">
+                  <div class="price-btn active" id="relTabBtnTodos" onclick="setRelTabela('')">Todos</div>
+                  <div class="price-btn" id="relTabBtnFOB" onclick="setRelTabela('FOB')">FOB</div>
+                  <div class="price-btn" id="relTabBtnEXW" onclick="setRelTabela('EXW')">EXW</div>
+                </div>
+              </div>
+            </div>
+            <div class="rel-active-filters" id="relActiveFilters"></div>
+          </div>
+          <div class="rel-acoes">
+            <button class="btn btn-secondary btn-sm" onclick="limparFiltros()">Limpar filtros</button>
+            <button class="btn btn-primary" onclick="gerarRelatorio()" id="btnGerarRel">Gerar relatório</button>
+          </div>
+        </div>
+
+        <div id="relLoading" class="rel-loading hidden"><span class="spin"></span><div class="mt-12">Calculando relatório...</div></div>
+        <div id="relEmpty" class="rel-empty hidden"><strong>Nenhum pedido encontrado</strong>Tente um período diferente ou ajuste os filtros.</div>
+
+        <div id="relResultado" class="hidden">
+          <div class="rel-topo">
+            <div>
+              <div class="periodo-badge" id="relPeriodoBadge">—</div>
+              <div class="hint" id="relFiltrosAtivosDisplay"></div>
+            </div>
+            <div class="page-acoes">
+              <label class="pdf-opt-check" id="optIncluirPedidos" title="Adiciona ao PDF a tabela com todos os pedidos do período"><input type="checkbox" id="chkIncluirPedidos" onchange="toggleIncluirPedidos()"><span class="pdf-opt-box"></span><span>Incluir lista de pedidos no PDF</span></label>
+              <button class="btn btn-pdf" id="btnRelPdf" onclick="exportarPdfRelatorio()">Exportar PDF do relatório</button>
+            </div>
+          </div>
+          <div id="relPdfResultBox" class="pdf-result hidden">
+            <div><strong>PDF salvo no Drive</strong><div class="sub" id="relPdfNome"></div></div>
+            <a id="relPdfLink" href="#" target="_blank" class="btn btn-sm btn-secondary">Abrir PDF</a>
+          </div>
+          <div class="rel-kpis">
+            <div class="kpi-card"><div class="kpi-label">Total faturado</div><div class="kpi-value" id="kpiTotal">—</div><div class="kpi-sub" id="kpiTotalSub">—</div></div>
+            <div class="kpi-card"><div class="kpi-label">Pedidos no período</div><div class="kpi-value" id="kpiQtd">—</div><div class="kpi-sub" id="kpiQtdSub">pedidos</div></div>
+            <div class="kpi-card"><div class="kpi-label">Ticket médio</div><div class="kpi-value" id="kpiTicket">—</div><div class="kpi-sub">por pedido</div></div>
+            <div class="kpi-card"><div class="kpi-label">Total de descontos</div><div class="kpi-value" id="kpiDesconto">—</div><div class="kpi-sub" id="kpiDescontoSub">—</div></div>
+          </div>
+          <div class="rel-grid">
+            <div class="rel-card full" id="cardMensal">
+              <div class="rel-card-header"><span class="rel-card-title">Evolução mensal</span><span class="rel-card-badge" id="relMensalBadge">—</span></div>
+              <div class="rel-card-body"><div class="chart-wrap" id="chartWrap"><canvas id="chartMensal"></canvas></div></div>
+            </div>
+            <div class="rel-card">
+              <div class="rel-card-header"><span class="rel-card-title">FOB x EXW</span></div>
+              <div class="rel-card-body">
+                <div class="tabela-split">
+                  <div class="tabela-kpi"><label>FOB</label><div class="tv" id="fobValor">—</div><div class="ts" id="fobQtd">—</div></div>
+                  <div class="tabela-kpi"><label>EXW</label><div class="tv" id="exwValor">—</div><div class="ts" id="exwQtd">—</div></div>
+                </div>
+                <div class="bar-wrap mt-12">
+                  <div class="bar-row"><div class="bar-label"><span>FOB</span><span id="fobPerc">—</span></div><div class="bar-track"><div class="bar-fill" id="fobBar" style="width:0%"></div></div></div>
+                  <div class="bar-row"><div class="bar-label"><span>EXW</span><span id="exwPerc">—</span></div><div class="bar-track"><div class="bar-fill claro" id="exwBar" style="width:0%"></div></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="rel-card">
+              <div class="rel-card-header"><span class="rel-card-title">Por país</span><span class="rel-card-badge" id="relPaisesBadge">—</span></div>
+              <div class="rel-card-body"><div class="bar-wrap" id="barPaises"></div></div>
+            </div>
+          </div>
+          <div class="rel-grid">
+            <div class="rel-card">
+              <div class="rel-card-header"><span class="rel-card-title">Top clientes</span><span class="rel-card-badge" id="relClientesBadge">—</span></div>
+              <div class="rel-card-body sem-padding"><table class="rank-table" id="rankClientes"></table></div>
+            </div>
+            <div class="rel-card">
+              <div class="rel-card-header"><span class="rel-card-title">Top produtos</span><span class="rel-card-badge" id="relProdutosBadge">—</span></div>
+              <div class="rel-card-body sem-padding"><table class="rank-table" id="rankProdutos"></table></div>
+            </div>
+          </div>
+          <div class="rel-card" id="cardPedidosDet">
+            <div class="rel-card-header">
+              <span class="rel-card-title">Pedidos do período</span>
+              <div class="page-acoes">
+                <span class="rel-card-badge" id="relPedidosDetBadge">—</span>
+                <input type="search" id="detBusca" class="det-busca" placeholder="Filtrar" aria-label="Filtrar pedidos" oninput="filtrarTabelaDet()">
+              </div>
+            </div>
+            <div class="rel-card-body sem-padding rolavel">
+              <table class="pedidos-det-table" style="min-width:580px;">
+                <thead><tr><th>Nº pedido</th><th>Data</th><th>Cliente</th><th>País</th><th>Tabela</th><th class="num">Valor total</th><th class="num">Desconto</th></tr></thead>
+                <tbody id="detTbody"></tbody>
+              </table>
+            </div>
+            <div class="det-pagination" id="detPagination">
+              <div class="det-pagination-info" id="detPagInfo">—</div>
+              <div class="det-pagination-btns" id="detPagBtns"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CONTROLE ===== -->
+      <div id="subRelControle" style="display:none;">
+        <div class="rel-hero">
+          <p class="page-sub" style="margin:0 0 14px;">Faturamento, comissões e ranking por período.</p>
+          <div class="rel-filters">
+            <div class="rel-filter-group"><label for="relCtrlDataIni">Data inicial</label><input type="date" id="relCtrlDataIni"></div>
+            <div class="rel-filter-group"><label for="relCtrlDataFim">Data final</label><input type="date" id="relCtrlDataFim"></div>
+            <div class="rel-shortcut-btns">
+              <button class="rel-shortcut-btn" onclick="setRelCtrlPeriodo('mes_anterior',event)">Mês anterior</button>
+              <button class="rel-shortcut-btn" onclick="setRelCtrlPeriodo('mes',event)">Este mês</button>
+              <button class="rel-shortcut-btn" onclick="setRelCtrlPeriodo('trimestre',event)">Trimestre</button>
+              <button class="rel-shortcut-btn" onclick="setRelCtrlPeriodo('semestre',event)">Semestre</button>
+              <button class="rel-shortcut-btn" onclick="setRelCtrlPeriodo('ano',event)">Ano</button>
+            </div>
+          </div>
+          <div class="rel-advanced-filters">
+            <div class="rel-advanced-row">
+              <div class="rel-filter-group"><label for="relCtrlCliente">Cliente</label>
+                <div class="autocomplete-wrap">
+                  <input type="text" id="relCtrlCliente" placeholder="Nome do cliente" autocomplete="off"
+                    oninput="relCtrlClienteInput(this.value)" onfocus="relCtrlClienteInput(this.value)"
+                    onblur="setTimeout(()=>document.getElementById('relCtrlClienteDd').classList.add('hidden'),200)">
+                  <div class="autocomplete-list hidden" id="relCtrlClienteDd"></div>
+                </div>
+              </div>
+              <div class="rel-filter-group"><label for="relCtrlPais">País destino</label>
+                <div class="autocomplete-wrap">
+                  <input type="text" id="relCtrlPais" placeholder="País destino" autocomplete="off"
+                    oninput="relCtrlPaisInput(this.value)" onfocus="relCtrlPaisInput(this.value)"
+                    onblur="setTimeout(()=>document.getElementById('relCtrlPaisDd').classList.add('hidden'),200)">
+                  <div class="autocomplete-list hidden" id="relCtrlPaisDd"></div>
+                </div>
+              </div>
+              <div class="rel-filter-group"><label>Tipo de transporte</label>
+                <div class="price-toggle compacto">
+                  <div class="price-btn active" id="relCtrlTrTodos" onclick="setRelCtrlTransporte('')">Todos</div>
+                  <div class="price-btn" id="relCtrlTrMar" onclick="setRelCtrlTransporte('maritimo')">Marítimo</div>
+                  <div class="price-btn" id="relCtrlTrRod" onclick="setRelCtrlTransporte('rodoviario')">Rodoviário</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="rel-acoes">
+            <button class="btn btn-secondary btn-sm" onclick="limparFiltrosCtrl()">Limpar filtros</button>
+            <div class="direita">
+              <button class="btn btn-pdf" onclick="exportarPdfControle()" id="btnExportPdfCtrl">Exportar PDF</button>
+              <button class="btn btn-pdf" onclick="exportarXlsxRelatorioControle()" id="btnExportXlsxCtrl">Exportar XLSX</button>
+              <button class="btn btn-primary" onclick="gerarRelatorioControle()" id="btnGerarRelCtrl">Gerar relatório</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-card-header"><span class="rel-card-title">Campos do relatório</span></div>
+          <div class="rel-card-body"><div id="relCtrlSecoesWrap" class="secoes-wrap"></div></div>
+        </div>
+
+        <div id="relCtrlLoading" class="rel-loading hidden"><span class="spin"></span><div class="mt-12">Calculando...</div></div>
+        <div id="relCtrlEmpty" class="rel-empty hidden"><strong>Nenhum dado encontrado</strong>Tente um período ou filtros diferentes.</div>
+
+        <div id="relCtrlResultado" class="hidden">
+          <div class="rel-topo"><div class="periodo-badge" id="relCtrlPeriodoBadge">—</div></div>
+
+          <div class="rel-kpis">
+            <div class="kpi-card"><div class="kpi-label">Valor total faturado</div><div class="kpi-value" id="ctrlKpiValor">—</div><div class="kpi-sub">US$</div></div>
+            <div class="kpi-card"><div class="kpi-label">Comissão total</div><div class="kpi-value" id="ctrlKpiCom">—</div><div class="kpi-sub">US$</div></div>
+            <div class="kpi-card"><div class="kpi-label">Qtd total faturada</div><div class="kpi-value" id="ctrlKpiSqmt">—</div><div class="kpi-sub">qtd</div></div>
+            <div class="kpi-card"><div class="kpi-label">Registros</div><div class="kpi-value" id="ctrlKpiTot">—</div><div class="kpi-sub" id="ctrlKpiTotSub">—</div></div>
+          </div>
+          <div class="rel-kpis" id="ctrlPrecoMedioWrap"></div>
+
+          <div class="rel-card" id="cardSecFatMes">
+            <div class="rel-card-header"><span class="rel-card-title">Faturado por mês</span><span class="rel-card-badge" id="ctrlFatMesBadge">—</span></div>
+            <div class="rel-card-body" id="relCtrlFatMes"></div>
+          </div>
+
+          <div class="rel-card" id="cardSecPontas">
+            <div class="rel-card-header"><span class="rel-card-title">Pontas de Produção / Classe B</span></div>
+            <div class="rel-card-body" id="relCtrlPontas"></div>
+          </div>
+
+          <div class="rel-card" id="cardSecComPais">
+            <div class="rel-card-header"><span class="rel-card-title">Comissão por país destino</span><span class="rel-card-badge" id="ctrlComPaisBadge">—</span></div>
+            <div class="rel-card-body rolavel">
+              <table class="pedidos-det-table" style="min-width:420px;">
+                <thead><tr><th>País destino</th><th class="num">Valor</th><th class="num">Comissão</th><th class="num">% comissão</th></tr></thead>
+                <tbody id="relCtrlComPais"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="rel-card" id="cardSecMatriz">
+            <div class="rel-card-header"><span class="rel-card-title">Faturamento por mês × país destino</span></div>
+            <div class="rel-card-body" id="relCtrlFatTotal"></div>
+          </div>
+
+          <div class="rel-card" id="cardSecTopClientes">
+            <div class="rel-card-header"><span class="rel-card-title">Top clientes por valor faturado</span></div>
+            <div class="rel-card-body sem-padding"><table class="rank-table" id="ctrlRankClientes"></table></div>
+          </div>
+
+          <div class="rel-card" id="cardSecPagos">
+            <div class="rel-card-header"><span class="rel-card-title">Pagamentos recebidos no período</span><span class="rel-card-badge" id="ctrlPagosBadge">—</span></div>
+            <div class="rel-card-body rolavel">
+              <table class="pedidos-det-table" style="min-width:500px;">
+                <thead><tr><th>Cliente</th><th>Proforma</th><th>Data faturamento</th><th>Data pagamento</th><th class="num">Valor US$</th><th class="num">Comissão %</th><th class="num">Comissão US$/R$</th><th>Data pagamento comissão</th></tr></thead>
+                <tbody id="relCtrlPagos"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="rel-card" id="cardSecVencidas">
+            <div class="rel-card-header"><span class="rel-card-title">Faturas vencidas</span><span class="rel-card-badge" id="ctrlVencidasBadge">—</span></div>
+            <div class="rel-card-body rolavel">
+              <table class="pedidos-det-table" style="min-width:560px;">
+                <thead><tr><th>Cliente</th><th>Proforma</th><th>Prev. pagamento</th><th class="num">Dias vencido</th><th class="num">Valor US$</th></tr></thead>
+                <tbody id="relCtrlVencidas"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== METAS ===== -->
+      <div id="subRelMetas" style="display:none;">
+        <div class="rel-hero">
+          <p class="page-sub" style="margin:0 0 14px;">Lance as metas do mês e acompanhe o realizado (calculado a partir das NFs).</p>
+          <div class="rel-filters">
+            <div class="rel-filter-group"><label for="metasAno">Ano</label><input type="number" id="metasAno" oninput="onMetasAnoInput()"></div>
+            <div class="rel-filter-group"><label for="metasMes">Mês</label>
+              <select id="metasMes" style="min-width:140px;" onchange="_metasAtualizarPendente()">
+                <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+                <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+                <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+                <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+              </select>
+            </div>
+            <div class="rel-filter-group"><label for="metasAnoComp">Comparar com</label>
+              <select id="metasAnoComp" style="min-width:110px;" onchange="_metasAtualizarPendente()"></select>
+            </div>
+            <button class="btn btn-primary" id="btnAplicarMetas" onclick="aplicarMetasPeriodo()">Aplicar</button>
+            <button class="btn btn-secondary" onclick="abrirAddPaisMeta()">Adicionar país</button>
+            <button class="btn btn-secondary" onclick="verPaisesControle()" title="Ver os nomes de País Destino usados no Controle, para conferir se batem com os países das Metas">Países no Controle</button>
+          </div>
+          <div class="rel-acoes">
+            <div>
+              <div class="periodo-badge" id="metasPeriodoBadge">—</div>
+              <div id="metasPendenteMsg" class="metas-pendente"></div>
+            </div>
+            <div class="direita">
+              <button class="btn btn-pdf" id="btnExportPdfMetas" onclick="exportarPdfMetas()">Exportar PDF</button>
+              <button class="btn btn-pdf" id="btnExportXlsxMetas" onclick="exportarXlsxMetas()">Exportar XLSX</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-card-header"><span class="rel-card-title">Campos do relatório</span></div>
+          <div class="rel-card-body"><div id="metasSecoesWrap" class="secoes-wrap"></div></div>
+        </div>
+
+        <div class="rel-card">
+          <div class="rel-card-header"><span class="rel-card-title">Metas e realizado do mês · <span class="metasMesAnoLabel">—</span></span></div>
+          <div class="rel-card-body">
+            <div style="overflow-x:auto;">
+              <div class="metas-grid-row" style="margin-bottom:8px;">
+                <div></div>
+                <div><label>Meta qtd (m²)</label></div>
+                <div><label>Realizado (m²), editável</label></div>
+                <div><label>Meta (R$)</label></div>
+                <div><label>Realizado (R$), editável</label></div>
+                <div><label>% atingido</label></div>
+                <div></div>
+              </div>
+              <div id="metasInputsWrap" style="display:flex;flex-direction:column;gap:10px;"></div>
+            </div>
+            <div class="metas-acoes">
+              <button class="btn btn-primary" onclick="salvarMetasMes()">Salvar metas e realizado do mês</button>
+              <span id="metasSalvoMsg" class="metas-salvo"></span>
+            </div>
+            <div class="metas-ajuda">O realizado (m² e R$) já vem calculado a partir das NFs, mas pode ser sobrescrito: basta editar e salvar. Campo com borda azul = valor editado; apagar o campo e salvar volta ao cálculo automático. O % atingido é sempre automático.</div>
+          </div>
+        </div>
+
+        <div class="rel-kpis" id="metasKpisMes"></div>
+
+        <div class="rel-card" id="metasSecAcum">
+          <div class="rel-card-header"><span class="rel-card-title">Acumulado do ano · <span class="metasAcumLabel">—</span> x <span class="metasAcumCompLabel">—</span></span></div>
+          <div class="rel-card-body"><div class="rel-kpis" id="metasKpisAcum" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:0;"></div></div>
+        </div>
+
+        <div class="rel-card" id="metasSecComp">
+          <div class="rel-card-header"><span class="rel-card-title">Comparativo por país · <span class="metasMesAnoLabel">—</span> x <span class="metasMesAnoCompLabel">—</span></span></div>
+          <div class="rel-card-body rolavel">
+            <table class="pedidos-det-table" style="min-width:900px;">
+              <thead>
+                <tr>
+                  <th rowspan="2">País</th>
+                  <th colspan="3" style="text-align:center;">Mês (m²)</th>
+                  <th colspan="3" style="text-align:center;">Mês (R$)</th>
+                  <th colspan="3" style="text-align:center;">Acumulado (m²)</th>
+                  <th colspan="3" style="text-align:center;">Acumulado (R$)</th>
+                </tr>
+                <tr>
+                  <th class="num metasAnoLabel">—</th><th class="num metasAnoCompLabel">—</th><th class="num">Var.</th>
+                  <th class="num metasAnoLabel">—</th><th class="num metasAnoCompLabel">—</th><th class="num">Var.</th>
+                  <th class="num metasAnoLabel">—</th><th class="num metasAnoCompLabel">—</th><th class="num">Var.</th>
+                  <th class="num metasAnoLabel">—</th><th class="num metasAnoCompLabel">—</th><th class="num">Var.</th>
+                </tr>
+              </thead>
+              <tbody id="metasCompPaisBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="rel-card" id="metasSecMR">
+          <div class="rel-card-header"><span class="rel-card-title">Meta x realizado · <span class="metasMesAnoLabel">—</span></span></div>
+          <div class="rel-card-body"><div class="bar-wrap" id="metasBarras"></div></div>
+        </div>
+
+        <div class="rel-card" id="metasSecPreco">
+          <div class="rel-card-header"><span class="rel-card-title">Preço médio por país · <span class="metasMesAnoLabel">—</span></span></div>
+          <div class="rel-card-body rolavel">
+            <table class="pedidos-det-table" id="metasPrecoMedioTable" style="min-width:520px;">
+              <thead><tr><th>País</th><th class="num">Qtd faturada</th><th class="num">Preço médio US$</th><th class="num">Preço médio R$</th></tr></thead>
+              <tbody id="metasPrecoMedioBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="rel-card" id="metasSecGrafRS">
+          <div class="rel-card-header">
+            <span class="rel-card-title">Evolução mensal · meta x realizado (global e por país) · <span class="metasAnoLabel">—</span></span>
+            <span class="metas-chart-opts">
+              <select class="metas-modo-sel" data-chart-modo="metasChartWrap" onchange="toggleModoChart(this)" title="Todos os países no mesmo gráfico ou um gráfico por país" aria-label="Modo do gráfico">
+                <option value="agrupado">Todos em um gráfico</option><option value="separado">Um gráfico por país</option>
+              </select>
+              <label class="metas-comp-toggle"><input type="checkbox" data-chart="metasChartWrap" onchange="toggleCompChart(this)"> Mostrar <span class="metasAnoCompLabel">—</span></label>
+            </span>
+          </div>
+          <div class="rel-card-body">
+            <div class="metas-dica">Clique num item da legenda para exibir/ocultar aquela linha. Linha cinza = ano de comparação · tracejada = meta.</div>
+            <div class="chart-wrap" id="metasChartWrap" style="height:auto;min-height:240px;"></div>
+          </div>
+        </div>
+
+        <div class="rel-card" id="metasSecAnualRS">
+          <div class="rel-card-header"><span class="rel-card-title">Acompanhamento anual · financeiro (R$) · <span class="metasAnoLabel">—</span></span></div>
+          <div class="rel-card-body rolavel"><table class="pedidos-det-table" id="metasTabelaAno" style="min-width:1350px;"></table></div>
+        </div>
+
+        <div class="rel-card" id="metasSecGrafPreco">
+          <div class="rel-card-header">
+            <span class="rel-card-title">Evolução mensal · preço médio (R$/m²) global e por país · <span class="metasAnoLabel">—</span></span>
+            <span class="metas-chart-opts">
+              <select class="metas-modo-sel" data-chart-modo="metasChartPrecoWrap" onchange="toggleModoChart(this)" title="Todos os países no mesmo gráfico ou um gráfico por país" aria-label="Modo do gráfico">
+                <option value="agrupado">Todos em um gráfico</option><option value="separado">Um gráfico por país</option>
+              </select>
+              <label class="metas-comp-toggle"><input type="checkbox" data-chart="metasChartPrecoWrap" onchange="toggleCompChart(this)"> Mostrar <span class="metasAnoCompLabel">—</span></label>
+            </span>
+          </div>
+          <div class="rel-card-body">
+            <div class="metas-dica">Clique num item da legenda para exibir/ocultar aquele país. Linha cinza = ano de comparação · tracejada = meta.</div>
+            <div class="chart-wrap" id="metasChartPrecoWrap" style="height:auto;min-height:240px;"></div>
+          </div>
+        </div>
+
+        <div class="rel-card" id="metasSecAnualPreco">
+          <div class="rel-card-header"><span class="rel-card-title">Acompanhamento anual · preço médio (R$/m²) · <span class="metasAnoLabel">—</span></span></div>
+          <div class="rel-card-body rolavel"><table class="pedidos-det-table" id="metasTabelaAnoPreco" style="min-width:1350px;"></table></div>
+        </div>
+
+        <div class="rel-card" id="metasSecGrafQtd">
+          <div class="rel-card-header">
+            <span class="rel-card-title">Evolução mensal · quantidade (m²) global e por país · <span class="metasAnoLabel">—</span></span>
+            <span class="metas-chart-opts">
+              <select class="metas-modo-sel" data-chart-modo="metasChartQtdWrap" onchange="toggleModoChart(this)" title="Todos os países no mesmo gráfico ou um gráfico por país" aria-label="Modo do gráfico">
+                <option value="agrupado">Todos em um gráfico</option><option value="separado">Um gráfico por país</option>
+              </select>
+              <label class="metas-comp-toggle"><input type="checkbox" data-chart="metasChartQtdWrap" onchange="toggleCompChart(this)"> Mostrar <span class="metasAnoCompLabel">—</span></label>
+            </span>
+          </div>
+          <div class="rel-card-body">
+            <div class="metas-dica">Clique num item da legenda para exibir/ocultar aquele país. Linha cinza = ano de comparação · tracejada = meta.</div>
+            <div class="chart-wrap" id="metasChartQtdWrap" style="height:auto;min-height:240px;"></div>
+          </div>
+        </div>
+
+        <div class="rel-card" id="metasSecAnualQtd">
+          <div class="rel-card-header"><span class="rel-card-title">Acompanhamento anual · quantidade (m²) · <span class="metasAnoLabel">—</span></span></div>
+          <div class="rel-card-body rolavel"><table class="pedidos-det-table" id="metasTabelaAnoQtd" style="min-width:1350px;"></table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ABA: CONFIGURAÇÕES ==================== -->
+  <div class="tab-content" id="tab-config">
+    <div class="main estreita">
+      <div class="page-head">
+        <div><h1 class="page-title">Configurações</h1><div class="page-sub">Links das planilhas e pastas, manutenção e aparência.</div></div>
+      </div>
+
+      <section class="section">
+        <div class="section-header"><h2 class="section-title">Links de configuração</h2><span class="section-badge" id="configStatus">—</span></div>
+        <div class="section-body">
+          <div id="cfgLinksWrap"></div>
+          <div class="hint" style="margin-top:14px;">Cole o link completo do Google Drive/Sheets ou apenas o ID. Os dados só aparecem nas telas depois que o link correspondente for salvo.</div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header"><h2 class="section-title">Manutenção</h2></div>
+        <div class="section-body">
+          <div class="manut-item">
+            <button class="btn btn-secondary btn-block" onclick="verificarDuplicados()">Verificar proformas duplicadas</button>
+            <div id="duplicadosResultado" class="mt-12"></div>
+          </div>
+          <div class="manut-item">
+            <button class="btn btn-secondary btn-block" onclick="migrarValorRSNFs()">Recalcular Valor R$ das NFs (US$ × cotação)</button>
+            <div class="hint">Preenche o Valor R$ de todas as NFs que têm US$ e cotação preenchidos mas R$ zerado ou vazio. Operação segura e reversível.</div>
+            <div id="migrarRSResultado"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header"><h2 class="section-title">Aparência</h2><span class="section-badge" id="aparenciaStatus">Salvo só neste navegador</span></div>
+        <div class="section-body">
+          <div class="bloco">
+            <h3 class="subtitulo">Abas</h3>
+            <div class="grid grid-3">
+              <div><label>Tamanho da fonte</label><div class="fs-control"><button class="btn btn-secondary btn-sm" onclick="ajustarFonte('navbar',-1)" aria-label="Diminuir">−</button><span id="navbarFsVal">13px</span><button class="btn btn-secondary btn-sm" onclick="ajustarFonte('navbar',1)" aria-label="Aumentar">+</button></div></div>
+              <div><label for="navbarClr">Cor da fonte</label><div class="color-control"><input type="color" id="navbarClr" value="#a9b0b8" oninput="aplicarCor('navbar',this.value)"><span id="navbarClrVal">#a9b0b8</span></div></div>
+            </div>
+          </div>
+          <div class="bloco">
+            <h3 class="subtitulo">Textos e campos</h3>
+            <div class="grid grid-3">
+              <div><label>Tamanho da fonte</label><div class="fs-control"><button class="btn btn-secondary btn-sm" onclick="ajustarFonte('body',-1)" aria-label="Diminuir">−</button><span id="bodyFsVal">14px</span><button class="btn btn-secondary btn-sm" onclick="ajustarFonte('body',1)" aria-label="Aumentar">+</button></div></div>
+              <div><label for="bodyClr">Cor da fonte</label><div class="color-control"><input type="color" id="bodyClr" value="#e3e6e9" oninput="aplicarCor('body',this.value)"><span id="bodyClrVal">#e3e6e9</span></div></div>
+            </div>
+          </div>
+          <div class="bloco">
+            <h3 class="subtitulo">Tabelas</h3>
+            <div class="grid grid-3">
+              <div><label>Tamanho da fonte</label><div class="fs-control"><button class="btn btn-secondary btn-sm" onclick="ajustarFonte('table',-1)" aria-label="Diminuir">−</button><span id="tableFsVal">13px</span><button class="btn btn-secondary btn-sm" onclick="ajustarFonte('table',1)" aria-label="Aumentar">+</button></div></div>
+              <div><label for="tableThClr">Cor do cabeçalho</label><div class="color-control"><input type="color" id="tableThClr" value="#a9b0b8" oninput="aplicarCor('table-th',this.value)"><span id="tableThClrVal">#a9b0b8</span></div></div>
+              <div><label for="tableTdClr">Cor das células</label><div class="color-control"><input type="color" id="tableTdClr" value="#e3e6e9" oninput="aplicarCor('table-td',this.value)"><span id="tableTdClrVal">#e3e6e9</span></div></div>
+            </div>
+          </div>
+          <div class="bloco">
+            <h3 class="subtitulo">Botões</h3>
+            <div class="grid grid-3">
+              <div><label>Tamanho da fonte</label><div class="fs-control"><button class="btn btn-secondary btn-sm" onclick="ajustarFonte('btn',-1)" aria-label="Diminuir">−</button><span id="btnFsVal">14px</span><button class="btn btn-secondary btn-sm" onclick="ajustarFonte('btn',1)" aria-label="Aumentar">+</button></div></div>
+              <div><label for="btnClr">Cor da fonte (botão principal)</label><div class="color-control"><input type="color" id="btnClr" value="#ffffff" oninput="aplicarCor('btn',this.value)"><span id="btnClrVal">#ffffff</span></div></div>
+            </div>
+          </div>
+          <div class="cfg-acoes">
+            <button class="btn btn-primary" onclick="salvarAparencia()">Salvar aparência</button>
+            <button class="btn btn-secondary" onclick="resetarAparencia()">Restaurar padrão</button>
+          </div>
+          <div id="aparenciaInfo" class="cfg-info">Aparência salva e aplicada.</div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header"><h2 class="section-title">Chave de acesso</h2></div>
+        <div class="section-body">
+          <p class="hint" style="margin:0 0 12px;">A chave fica salva só neste navegador. Troque aqui se ela mudar no servidor.</p>
+          <button class="btn btn-secondary" onclick="trocarChaveAcesso()">Trocar chave de acesso</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</div><!-- fim #app -->
+
+<!-- ==================== MODAIS ==================== -->
+<!-- Novo / editar registro do Controle -->
+<div class="modal-backdrop hidden" id="modalControle">
+  <div class="modal modal-largo">
+    <div class="modal-header">
+      <div><div class="modal-title" id="modalControleTitulo">Novo registro</div><div class="modal-sub" id="modalControleSubtitulo">Preencha os dados</div></div>
+    </div>
+    <div class="modal-body">
+      <div class="grid grid-2 form-linha">
+        <div><label for="ctrl-empresa">Empresa</label><input type="text" id="ctrl-empresa" placeholder="Nome da empresa"></div>
+        <div><label for="ctrl-cliente">Cliente</label>
+          <div class="autocomplete-wrap">
+            <input type="text" id="ctrl-cliente" placeholder="Buscar cliente" autocomplete="off" oninput="ctrlClienteInput(this.value)" onfocus="ctrlClienteInput(this.value)" onblur="setTimeout(()=>document.getElementById('ctrlClienteDropdown').classList.add('hidden'),200)">
+            <div class="autocomplete-list hidden" id="ctrlClienteDropdown"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-2 form-linha">
+        <div><label for="ctrl-numero-ad">Nº pedido AD</label>
+          <input type="text" id="ctrl-numero-ad" placeholder="PED-..." oninput="onNumeroAdInput()">
+          <div id="ctrl-pdf-ad-nome" class="campo-info">O PDF é buscado automaticamente na pasta configurada.</div>
+        </div>
+        <div><label for="ctrl-numero-proforma">Nº proforma <span class="txt-perigo">*</span></label>
+          <div class="pdf-upload-wrap"><input type="text" id="ctrl-numero-proforma" placeholder="PRO-..." required><button class="btn btn-secondary btn-sm" onclick="uploadPdfControle('proforma')">Anexar PDF</button></div>
+          <div id="ctrl-pdf-proforma-nome" class="campo-info"></div>
+          <input type="hidden" id="ctrl-pdf-proforma">
+          <input type="hidden" id="ctrl-proforma-original">
+        </div>
+      </div>
+
+      <div class="grid grid-2 form-linha">
+        <div><label for="ctrl-valor">Valor (US$)</label><input type="number" id="ctrl-valor" placeholder="0.00" step="0.01" min="0"></div>
+        <div><label for="ctrl-sqmt">Qtd total</label><input type="number" id="ctrl-sqmt" placeholder="0.00" step="0.01" min="0"></div>
+      </div>
+
+      <div class="grid grid-2 form-linha">
+        <div><label for="ctrl-prazo-pagamento">Prazo de pagamento</label><input type="text" id="ctrl-prazo-pagamento" placeholder="Ex.: 30, 60 dias" oninput="calcDataPrevPagamento()"></div>
+        <div><label>Faturamento</label>
+          <div class="faturado-linha"><span id="ctrl-faturado-display" class="chip">Não faturado</span><span class="campo-info" style="margin:0;">Calculado a partir das NFs lançadas</span></div>
+          <button type="button" class="btn btn-secondary btn-sm btn-block mt-12" onclick="abrirModalNFDoFormulario()">Ver / lançar notas fiscais</button>
+        </div>
+      </div>
+
+      <div class="grid grid-2 form-linha">
+        <div><label for="ctrl-pais-destino">País destino</label><input type="text" id="ctrl-pais-destino" placeholder="País"></div>
+        <div><label for="ctrl-pdf-invoice">Link do invoice</label>
+          <input type="text" id="ctrl-pdf-invoice" placeholder="Cole o link do invoice (opcional)">
+          <div class="campo-info">Preenchido automaticamente por "Vincular arquivos" quando houver um invoice na pasta.</div>
+        </div>
+      </div>
+
+      <div class="grid grid-2 form-linha">
+        <div class="embarque-check" id="ctrl-ponta-check" onclick="toggleCtrlPonta()">
+          <input type="checkbox" id="ctrl-ponta">
+          <div class="emb-box"></div>
+          <div class="check-texto"><strong>Ponta de Produção</strong><span>Comissão fixa de 1% (pré-preenchida ao lançar NF)</span></div>
+        </div>
+        <div class="embarque-check" id="ctrl-classe-b-check" onclick="toggleCtrlClasseB()">
+          <input type="checkbox" id="ctrl-classe-b">
+          <div class="emb-box"></div>
+          <div class="check-texto"><strong>Classe B</strong><span>Comissão fixa de 1% · entra no relatório junto com as Pontas de Produção</span></div>
+        </div>
+      </div>
+
+      <div class="form-linha" id="ctrl-comissao-manual-wrap">
+        <label for="ctrl-comissao-manual">Comissão manual (%), só para registros antigos sem NF</label>
+        <input type="number" id="ctrl-comissao-manual" step="0.01" min="0" placeholder="0.00">
+        <div class="campo-info">Usada nos relatórios <strong>somente enquanto não houver NF lançada</strong> para esta proforma. Ao lançar a primeira NF, o cálculo automático passa a valer e este campo é ignorado. Se "Ponta de Produção" ou "Classe B" estiver marcada, vira 1% automaticamente.</div>
+      </div>
+
+      <div class="grid grid-2 form-linha">
+        <div><label>Etiquetas</label>
+          <div class="price-toggle">
+            <div class="price-btn" id="ctrl-etq-sim" onclick="setCtrlToggle2('etiquetas','SIM')">SIM</div>
+            <div class="price-btn" id="ctrl-etq-nao" onclick="setCtrlToggle2('etiquetas','NÃO')">NÃO</div>
+          </div>
+          <input type="hidden" id="ctrl-etiquetas" value="">
+        </div>
+        <div><label for="ctrl-status-etiquetas">Status das etiquetas</label>
+          <select id="ctrl-status-etiquetas">
+            <option value="">Selecione...</option>
+            <option value="aguardando aprovação">Aguardando aprovação</option>
+            <option value="aprovada">Aprovada</option>
+            <option value="reprovada">Reprovada</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-2 form-linha">
+        <div><label>Inspeção</label>
+          <div class="price-toggle">
+            <div class="price-btn" id="ctrl-insp-sim" onclick="setCtrlToggle2('inspecao','SIM')">SIM</div>
+            <div class="price-btn" id="ctrl-insp-nao" onclick="setCtrlToggle2('inspecao','NÃO')">NÃO</div>
+          </div>
+          <input type="hidden" id="ctrl-inspecao" value="">
+        </div>
+        <div><label for="ctrl-aprovacao-inspecao">Aprovação da inspeção</label>
+          <select id="ctrl-aprovacao-inspecao">
+            <option value="">Selecione...</option>
+            <option value="fora da vigência">Fora da vigência</option>
+            <option value="aprovada">Aprovada</option>
+            <option value="reprovada">Reprovada</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-linha">
+        <label>Tipo de transporte</label>
+        <div class="price-toggle">
+          <div class="price-btn" id="ctrl-transp-maritimo" onclick="setTransporte2('maritimo')">Marítimo</div>
+          <div class="price-btn" id="ctrl-transp-rodoviario" onclick="setTransporte2('rodoviario')">Rodoviário</div>
+          <div class="price-btn" id="ctrl-transp-amostra" onclick="setTransporte2('amostra')">Amostra</div>
+        </div>
+        <input type="hidden" id="ctrl-transporte" value="">
+      </div>
+
+      <!-- Dados marítimos -->
+      <div id="ctrl-secao-maritimo" class="form-bloco hidden">
+        <h3 class="subtitulo">Dados marítimos</h3>
+        <div class="grid grid-2">
+          <div><label for="ctrl-booking">Reserva / booking</label><input type="text" id="ctrl-booking" placeholder="Número do booking"></div>
+          <div><label for="ctrl-courrier">Courrier / rastreamento</label><input type="text" id="ctrl-courrier" placeholder="Código de rastreamento"></div>
+        </div>
+        <div class="grid grid-2">
+          <div><label for="ctrl-porto-origem">Porto origem</label>
+            <div class="autocomplete-wrap">
+              <input type="text" id="ctrl-porto-origem" placeholder="Selecione ou digite" autocomplete="off"
+                oninput="ctrlAutocompleteCampo('porto_origem',this.value)" onfocus="ctrlAutocompleteCampo('porto_origem',this.value)"
+                onblur="setTimeout(()=>document.getElementById('dd-porto-origem')?.classList.add('hidden'),200)">
+              <div class="autocomplete-list hidden" id="dd-porto-origem"></div>
+            </div>
+          </div>
+          <div><label for="ctrl-porto-destino">Porto destino</label>
+            <div class="autocomplete-wrap">
+              <input type="text" id="ctrl-porto-destino" placeholder="Selecione ou digite" autocomplete="off"
+                oninput="ctrlAutocompleteCampo('porto_destino',this.value)" onfocus="ctrlAutocompleteCampo('porto_destino',this.value)"
+                onblur="setTimeout(()=>document.getElementById('dd-porto-destino').classList.add('hidden'),200)">
+              <div class="autocomplete-list hidden" id="dd-porto-destino"></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-2">
+          <div><label for="ctrl-agente">Agente</label>
+            <div class="autocomplete-wrap">
+              <input type="text" id="ctrl-agente" placeholder="Selecione ou digite" autocomplete="off"
+                oninput="ctrlAutocompleteCampo('agente',this.value)" onfocus="ctrlAutocompleteCampo('agente',this.value)"
+                onblur="setTimeout(()=>document.getElementById('dd-agente').classList.add('hidden'),200)">
+              <div class="autocomplete-list hidden" id="dd-agente"></div>
+            </div>
+          </div>
+          <div><label for="ctrl-armador">Armador</label>
+            <div class="autocomplete-wrap">
+              <input type="text" id="ctrl-armador" placeholder="Selecione ou digite" autocomplete="off"
+                oninput="ctrlAutocompleteCampo('armador',this.value)" onfocus="ctrlAutocompleteCampo('armador',this.value)"
+                onblur="setTimeout(()=>document.getElementById('dd-armador')?.classList.add('hidden'),200)">
+              <div class="autocomplete-list hidden" id="dd-armador"></div>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-2">
+          <div><label for="ctrl-navio">Navio</label>
+            <div class="autocomplete-wrap">
+              <input type="text" id="ctrl-navio" placeholder="Selecione ou digite" autocomplete="off"
+                oninput="ctrlAutocompleteCampo('navio',this.value)" onfocus="ctrlAutocompleteCampo('navio',this.value)"
+                onblur="setTimeout(()=>document.getElementById('dd-navio').classList.add('hidden'),200)">
+              <div class="autocomplete-list hidden" id="dd-navio"></div>
+            </div>
+          </div>
+          <div><label for="ctrl-data-bl">Data BL</label><input type="date" id="ctrl-data-bl" onchange="calcDataPrevPagamento()"></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="datas-duplas">
+            <label for="ctrl-etd">ETD (saída prevista / saída real)</label>
+            <input type="date" id="ctrl-etd" title="Saída prevista">
+            <input type="date" id="ctrl-saida" title="Saída real" aria-label="Saída real">
+            <div class="campo-info">Primeiro: previsto. Segundo: <span class="dt-real">saída real</span>.</div>
+          </div>
+          <div class="datas-duplas">
+            <label for="ctrl-eta-maritimo">ETA (chegada prevista / chegada real)</label>
+            <input type="date" id="ctrl-eta-maritimo" title="Chegada prevista">
+            <input type="date" id="ctrl-chegada" title="Chegada real" aria-label="Chegada real">
+            <div class="campo-info">Primeiro: previsto. Segundo: <span class="dt-real">chegada real</span>.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dados rodoviários -->
+      <div id="ctrl-secao-rodoviario" class="form-bloco hidden">
+        <h3 class="subtitulo">Dados rodoviários</h3>
+        <div class="grid grid-2">
+          <div><label for="ctrl-crt-numero">Nº CRT</label><input type="text" id="ctrl-crt-numero" placeholder="Número do CRT"></div>
+          <div><label for="ctrl-data-crt">Data CRT</label><input type="date" id="ctrl-data-crt" onchange="calcDataPrevPagamento()"></div>
+        </div>
+        <div class="grid grid-2">
+          <div><label for="ctrl-transportador">Transportador</label>
+            <div class="autocomplete-wrap">
+              <input type="text" id="ctrl-transportador" placeholder="Selecione ou digite" autocomplete="off"
+                oninput="ctrlAutocompleteCampo('transportador',this.value)" onfocus="ctrlAutocompleteCampo('transportador',this.value)"
+                onblur="setTimeout(()=>document.getElementById('dd-transportador')?.classList.add('hidden'),200)">
+              <div class="autocomplete-list hidden" id="dd-transportador"></div>
+            </div>
+          </div>
+          <div><label for="ctrl-destino-rod">Destino</label><input type="text" id="ctrl-destino-rod" placeholder="Destino"></div>
+        </div>
+        <div class="grid grid-2">
+          <div><label for="ctrl-data-carregamento">Data de carregamento</label><input type="date" id="ctrl-data-carregamento" onchange="calcDataPrevPagamento()"></div>
+        </div>
+      </div>
+
+      <!-- Dados da amostra -->
+      <div id="ctrl-secao-amostra" class="form-bloco hidden">
+        <h3 class="subtitulo">Dados da amostra</h3>
+        <div class="grid grid-2">
+          <div><label for="ctrl-amostra-transportador">Transportador</label><input type="text" id="ctrl-amostra-transportador" placeholder="Transportador"></div>
+          <div><label for="ctrl-amostra-destino">Destino</label><input type="text" id="ctrl-amostra-destino" placeholder="Destino"></div>
+        </div>
+        <div class="grid grid-2">
+          <div class="span-2"><label for="ctrl-amostra-courrier">Courrier / rastreamento</label><input type="text" id="ctrl-amostra-courrier" placeholder="Código de rastreamento"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-2 form-linha">
+        <div><label for="ctrl-data-prev-pagamento">Data prevista de pagamento (editável)</label>
+          <input type="date" id="ctrl-data-prev-pagamento">
+          <div class="campo-info">Marítimo: Data BL + prazo · Rodoviário: data de carregamento + prazo</div>
+        </div>
+        <div><label for="ctrl-data-pagamento">Data de pagamento</label><input type="date" id="ctrl-data-pagamento"></div>
+      </div>
+
+      <div class="form-linha"><label for="ctrl-data-pagamento-comissao">Data de pagamento da comissão (editável)</label>
+        <input type="date" id="ctrl-data-pagamento-comissao">
+        <div class="campo-info">Data em que a comissão foi paga. Vazio = comissão ainda pendente.</div>
+      </div>
+
+      <div class="form-linha"><label for="ctrl-status">Status</label>
+        <select id="ctrl-status">
+          <option value="">Selecione...</option>
+          <option value="ag. documentação">Ag. documentação</option>
+          <option value="ag. cadastro">Ag. cadastro</option>
+          <option value="ag. liberação financeiro">Ag. liberação financeiro</option>
+          <option value="ag. informações">Ag. informações</option>
+          <option value="ag. aprovação cliente">Ag. aprovação cliente</option>
+          <option value="ag. pagamento">Ag. pagamento</option>
+          <option value="proforma enviada">Proforma enviada</option>
+          <option value="ag. produção">Ag. produção</option>
+          <option value="ag. nomeação agente">Ag. nomeação agente</option>
+          <option value="ag. instrução de embarque">Ag. instrução de embarque</option>
+          <option value="ag. reserva/booking">Ag. reserva/booking</option>
+          <option value="transferência de navio">Transferência de navio</option>
+          <option value="ag. embarque">Ag. embarque</option>
+          <option value="embarcado">Embarcado</option>
+          <option value="embarcou na fábrica">Embarcou na fábrica</option>
+          <option value="finalizado">Finalizado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+
+      <div class="form-linha"><label for="ctrl-observacoes">Observações</label><textarea id="ctrl-observacoes" placeholder="Observações gerais"></textarea></div>
+
+      <div id="ctrl-historico-wrap" class="hidden">
+        <label>Histórico de alterações</label>
+        <div id="ctrl-historico" class="historico"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModalControle()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarControle()" id="btnSalvarControle">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Excluir registro do Controle -->
+<div class="modal-backdrop hidden" id="modalExcluirControle">
+  <div class="modal">
+    <div class="modal-header"><div><div class="modal-title perigo">Excluir registro</div><div class="modal-sub" id="excluirCtrlSubtitle">—</div></div></div>
+    <div class="modal-body">
+      <p>O registro será removido da aba Controle.</p>
+      <p class="aviso-perigo">Esta ação não pode ser desfeita.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modalExcluirControle')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarExcluirControle()">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Observações: leitura/edição rápida -->
+<div class="modal-backdrop hidden" id="modalObsRapida">
+  <div class="modal modal-medio">
+    <div class="modal-header"><div><div class="modal-title">Observações</div><div class="modal-sub" id="obsRapidaSubtitle">—</div></div></div>
+    <div class="modal-body">
+      <textarea id="obsRapidaTexto" aria-label="Observações" placeholder="Observações gerais" style="min-height:160px;"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharObsRapida()">Cancelar</button>
+      <button class="btn btn-primary" id="btnSalvarObsRapida" onclick="salvarObsRapida()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Data de pagamento da comissão: edição rápida -->
+<div class="modal-backdrop hidden" id="modalComissaoPagaRapida">
+  <div class="modal modal-pequeno">
+    <div class="modal-header"><div><div class="modal-title">Pagamento da comissão</div><div class="modal-sub" id="comissaoPagaRapidaSubtitle">—</div></div></div>
+    <div class="modal-body">
+      <label for="comissaoPagaRapidaData">Data em que a comissão foi paga</label>
+      <input type="date" id="comissaoPagaRapidaData">
+      <div class="campo-info">Deixe em branco para marcar como ainda não paga.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharComissaoPagaRapida()">Cancelar</button>
+      <button class="btn btn-primary" id="btnSalvarComissaoPagaRapida" onclick="salvarComissaoPagaRapida()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Vincular arquivos em lote -->
+<div class="modal-backdrop hidden" id="modalVincular">
+  <div class="modal">
+    <div class="modal-header"><div><div class="modal-title">Vincular arquivos</div><div class="modal-sub">Vinculação em lote</div></div></div>
+    <div class="modal-body">
+      <p>Busca arquivos na pasta do Drive pelo número da proforma e <strong>substitui os links existentes</strong> em todos os registros.</p>
+      <p>Se houver dois arquivos com o mesmo número, o último encontrado será usado.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modalVincular')">Cancelar</button>
+      <button class="btn btn-primary" onclick="_executarVincular()">Vincular</button>
+    </div>
+  </div>
+</div>
+
+<!-- Adicionar país (Metas) -->
+<div class="modal-backdrop hidden" id="modalAddPaisMeta">
+  <div class="modal modal-pequeno">
+    <div class="modal-header"><div><div class="modal-title">Adicionar país</div><div class="modal-sub">Metas por país</div></div></div>
+    <div class="modal-body">
+      <label for="addPaisMetaInput">Nome do país</label>
+      <input type="text" id="addPaisMetaInput" placeholder="Ex.: Uruguai" onkeydown="if(event.key==='Enter')confirmarAddPaisMeta()">
+      <p class="hint">Use o mesmo nome (ou bem parecido) do campo "País destino" do Controle, para o realizado casar automaticamente.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal('modalAddPaisMeta')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarAddPaisMeta()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notas fiscais da proforma -->
+<div class="modal-backdrop hidden" id="modalNF">
+  <div class="modal modal-largo">
+    <div class="modal-header"><div><div class="modal-title">Notas fiscais</div><div class="modal-sub" id="modalNFSubtitulo">—</div></div></div>
+    <div class="modal-body">
+      <input type="hidden" id="nf-proforma-atual">
+      <input type="hidden" id="nf-empresa-atual">
+
+      <div id="nfTotaisWrap"></div>
+      <div id="nfListaWrap"></div>
+      <div id="nfEmpty" class="vazio hidden">Nenhuma NF lançada para esta proforma.</div>
+
+      <button class="btn btn-secondary btn-block mt-12" id="btnMostrarFormNF" onclick="mostrarFormNF()">Inserir NF</button>
+
+      <div id="nfFormWrap" class="nf-form hidden">
+        <h3 class="subtitulo" id="nfFormTitulo">Nova NF</h3>
+        <input type="hidden" id="nf-linha-edicao">
+        <div class="grid grid-3">
+          <div><label for="nf-data-fat">Data de faturamento</label><input type="date" id="nf-data-fat"></div>
+          <div><label for="nf-numero">Nº NF</label><input type="text" id="nf-numero" placeholder="Número da NF"></div>
+          <div><label for="nf-sqmt">Qtd (m²)</label><input type="number" id="nf-sqmt" step="0.01" min="0" placeholder="0.00"></div>
+        </div>
+        <div class="grid grid-3">
+          <div><label for="nf-valor-us">Valor (US$)</label><input type="number" id="nf-valor-us" step="0.01" min="0" placeholder="0.00" oninput="atualizarPreviewComissaoNF();autoCalcNFValorRS()"></div>
+          <div><label for="nf-comissao-pct">Comissão (%)</label><input type="number" id="nf-comissao-pct" step="0.01" min="0" placeholder="0.00" oninput="atualizarPreviewComissaoNF()"></div>
+          <div><label>Valor da comissão</label><div id="nf-comissao-preview" class="nf-preview">US$ 0,00</div></div>
+        </div>
+        <div class="grid grid-2">
+          <div><label for="nf-valor-rs">Valor (R$), automático: US$ × cotação</label><input type="number" id="nf-valor-rs" step="0.01" min="0" placeholder="0.00"></div>
+          <div><label for="nf-cotacao">Cotação da NF</label><input type="number" id="nf-cotacao" step="0.0001" min="0" placeholder="0.0000" oninput="autoCalcNFValorRS()"></div>
+        </div>
+        <div class="form-linha">
+          <div class="embarque-check" id="nf-devolucao-check" onclick="toggleNFDevolvida()">
+            <input type="checkbox" id="nf-devolvida">
+            <div class="emb-box" id="nf-devolvida-box"></div>
+            <div class="check-texto perigo"><strong>NF devolvida</strong><span>Os valores entram negativos nos relatórios (abatimento)</span></div>
+          </div>
+          <div id="nf-devolucao-numwrap" class="hidden mt-12">
+            <div class="grid grid-2">
+              <div><label for="nf-nf-devolucao">Nº NF de devolução</label><input type="text" id="nf-nf-devolucao" placeholder="Número da NF de devolução"></div>
+              <div><label for="nf-data-nf-devolucao">Data da NF de devolução</label><input type="date" id="nf-data-nf-devolucao"></div>
+            </div>
+            <div class="campo-info">O abatimento (valor negativo) entra no mês desta data, não no mês da NF original.</div>
+            <div class="embarque-check checked mt-12" id="nf-abater-relatorio-check" onclick="toggleNFAbaterRelatorio()">
+              <input type="checkbox" id="nf-abater-relatorio" checked>
+              <div class="emb-box" id="nf-abater-relatorio-box"></div>
+              <div class="check-texto"><strong>Lançar abatimento no relatório</strong><span>Desmarque para só identificar a devolução (selo na NF), sem descontar valor/comissão. Ex.: devolução seguida de refaturamento de valor igual.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-linha">
+          <div class="embarque-check checked" id="nf-incluir-relatorio-check" onclick="toggleNFIncluirRelatorio()">
+            <input type="checkbox" id="nf-incluir-relatorio" checked>
+            <div class="emb-box" id="nf-incluir-relatorio-box"></div>
+            <div class="check-texto"><strong>Manter no Relatório de Controle</strong><span>Incluída no somatório do mês original</span></div>
+          </div>
+        </div>
+        <div class="nf-form-acoes">
+          <button class="btn btn-primary" onclick="salvarNFModal()">Salvar NF</button>
+          <button class="btn btn-secondary" onclick="ocultarFormNF()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModalNF()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Chave de acesso (primeiro uso em cada navegador) -->
+<div class="modal-backdrop hidden" id="modalChave">
+  <div class="modal modal-pequeno">
+    <div class="modal-header"><div><div class="modal-title">Chave de acesso</div><div class="modal-sub" id="modalChaveSub">Digite a chave para acessar os dados.</div></div></div>
+    <div class="modal-body">
+      <label for="chaveAcessoInput">Chave</label>
+      <input type="password" id="chaveAcessoInput" autocomplete="off" onkeydown="if(event.key==='Enter')confirmarChaveAcesso()">
+      <p class="hint">Fica salva só neste navegador.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="confirmarChaveAcesso()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="statusInlineOverlay" onclick="fecharTodosInlineDD()"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Scripts: offline.js primeiro (cria google.script.run), depois utilitários, app e cada aba -->
+<script src="js/offline.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/app.js"></script>
+<script src="js/controle.js"></script>
+<script src="js/controle-edicao.js"></script>
+<script src="js/controle-colunas.js"></script>
+<script src="js/nf.js"></script>
+<script src="js/notificacoes.js"></script>
+<script src="js/relatorios.js"></script>
+<script src="js/relatorio-controle.js"></script>
+<script src="js/metas.js"></script>
+<script src="js/config.js"></script>
+</body>
+</html>
