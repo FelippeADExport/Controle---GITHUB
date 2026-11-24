@@ -4,7 +4,7 @@
 // Ao criar/renomear arquivos .js/.css, inclua-os em SHELL_FILES e suba o número do SHELL_CACHE.
 // O Consulta fica no mesmo endereço (felippeadexport.github.io), por isso este
 // service worker só mexe nos caches que começam com "controle-".
-const SHELL_CACHE = 'controle-shell-v4';
+const SHELL_CACHE = 'controle-shell-v5';
 const SHELL_FILES = [
   './',
   './index.html',
