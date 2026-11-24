@@ -300,11 +300,15 @@ html[data-theme="light"] .logo-escuro{display:none}
 
 /* Barra de filtros */
 .ctrl-filter-bar{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
-.ctrl-filtros{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
-.ctrl-filter-group{display:flex;flex-direction:column}
-.ctrl-filter-group label{margin-bottom:4px}
-.ctrl-filter-input{min-height:32px;padding:5px 10px;font-size:13px;min-width:150px}
-select.ctrl-filter-input{padding-right:28px}
+/* Todos os filtros dividem uma única linha (como no programa antigo); em telas estreitas quebram */
+.ctrl-filtros{display:flex;gap:8px;flex-wrap:nowrap;align-items:flex-end}
+.ctrl-filter-group{display:flex;flex-direction:column;flex:1 1 0;min-width:0}
+.ctrl-filter-group label{margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctrl-filter-group .autocomplete-wrap{width:100%}
+.ctrl-filter-input{min-height:32px;padding:5px 8px;font-size:13px;min-width:0;width:100%;text-overflow:ellipsis}
+select.ctrl-filter-input{padding-right:24px;background-position:right 8px center}
+.ctrl-filtros>.btn{flex:none}
+@media(max-width:1100px){.ctrl-filtros{flex-wrap:wrap}.ctrl-filter-group{flex:1 1 140px}}
 
 /* Barra de colunas (montada pelo JS) */
 .col-toggle-bar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px}
