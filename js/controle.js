@@ -550,8 +550,18 @@ function _executarVincular(){
     btn.disabled=false; btn.textContent=txt;
     const d=JSON.parse(r);
     if(d.success){
-      showToast(d.vinculados+' vinculado(s) · '+d.marcadosInvoice+' marcado(s) como Invoice · '+d.semArquivo+' sem arquivo','success');
-      if(d.vinculados>0)loadControle();
+      // Só o que mudou nesta execução (servidor atualizado); servidor antigo não envia novosProforma
+      if(d.novosProforma===undefined){
+        showToast(d.vinculados+' vinculado(s) · '+d.marcadosInvoice+' marcado(s) como Invoice · '+d.semArquivo+' sem arquivo','success');
+        if(d.vinculados>0)loadControle();
+        return;
+      }
+      const partes=[];
+      if(d.novosProforma) partes.push(d.novosProforma+' proforma(s) nova(s)');
+      if(d.alteradosProforma) partes.push(d.alteradosProforma+' proforma(s) com link atualizado');
+      if(d.marcadosInvoice) partes.push(d.marcadosInvoice+' invoice(s) novo(s)');
+      showToast(partes.length ? 'Vinculados: '+partes.join(' · ') : 'Nenhum arquivo novo para vincular','success');
+      if(partes.length)loadControle();
     } else {
       showToast('Erro: '+d.error,'error');
     }
